@@ -1,0 +1,98 @@
+{
+	"beadId": "bd-l1s",
+	"tasks": [
+		{
+			"id": "research-1",
+			"category": "research",
+			"title": "Produce unified state research artifact",
+			"description": "A research artifact exists that captures the durable-versus-active state split, key evidence, and first architecture recommendation for the merged system.",
+			"steps": [
+				"test -f '/work/ock-omo-system/.beads/artifacts/bd-l1s/research.md'",
+				"grep -n 'durable\\|active execution\\|bead_id\\|duplicate durable truth' '/work/ock-omo-system/.beads/artifacts/bd-l1s/research.md'"
+			],
+			"passes": true,
+			"metadata": {
+				"depends_on": [],
+				"parallel": true,
+				"conflicts_with": [],
+				"files": [
+					"/work/ock-omo-system/.beads/artifacts/bd-l1s/research.md",
+					"/work/ock-omo-system/ock/.beads/README.md",
+					"/work/ock-omo-system/ock/.beads/config.yaml",
+					"/work/ock-omo-system/omo/src/features/claude-tasks/storage.ts",
+					"/work/ock-omo-system/omo/src/features/boulder-state/storage.ts",
+					"/work/ock-omo-system/omo/src/features/run-continuation-state/storage.ts"
+				]
+			}
+		},
+		{
+			"id": "design-1",
+			"category": "design",
+			"title": "Define state authority model",
+			"description": "A decision-quality architecture definition exists for one operator-facing state model with durable ledger and active execution tiers.",
+			"steps": [
+				"grep -n 'durable ledger\\|active execution\\|one operator-facing state model' '/work/ock-omo-system/.beads/artifacts/bd-l1s/prd.md'",
+				"grep -n 'one source of truth\\|precedence' '/work/ock-omo-system/.opencode/memory/project/project.md'"
+			],
+			"passes": true,
+			"metadata": {
+				"depends_on": ["Produce unified state research artifact"],
+				"parallel": false,
+				"conflicts_with": [],
+				"files": [
+					"/work/ock-omo-system/.beads/artifacts/bd-l1s/plan.md",
+					"/work/ock-omo-system/.opencode/memory/project/project.md",
+					"/work/ock-omo-system/.opencode/memory/project/state.md"
+				]
+			}
+		},
+		{
+			"id": "architecture-1",
+			"category": "architecture",
+			"title": "Define migration and compatibility rules",
+			"description": "The architecture specifies how legacy `.beads` and `.sisyphus` paths will coexist during transition without remaining peer durable truth sources.",
+			"steps": [
+				"grep -n 'migration\\|compatibility-only\\|transition' '/work/ock-omo-system/.beads/artifacts/bd-l1s/prd.md'",
+				"grep -n 'duplicate durable truth\\|compatibility-only' '/work/ock-omo-system/.opencode/memory/project/project.md'"
+			],
+			"passes": true,
+			"metadata": {
+				"depends_on": ["Define state authority model"],
+				"parallel": false,
+				"conflicts_with": [],
+				"files": [
+					"/work/ock-omo-system/.beads/artifacts/bd-l1s/plan.md",
+					"/work/ock-omo-system/.opencode/memory/project/project.md",
+					"/work/ock-omo-system/.opencode/memory/project/roadmap.md",
+					"/work/ock-omo-system/.opencode/memory/project/state.md"
+				]
+			}
+		}
+	],
+	"context": {
+		"patterns": [
+			"OCK uses /.beads/issues.jsonl and /.beads/artifacts/<bead-id>/ as durable git-backed workflow state.",
+			"OMO uses /.sisyphus/* for runtime orchestration, continuation, and execution scaffolding.",
+			"Approved plans should settle into durable bead artifacts rather than remain dual-homed in active state."
+		],
+		"keyFiles": [
+			"/work/ock-omo-system/.opencode/memory/project/project.md",
+			"/work/ock-omo-system/.opencode/memory/project/roadmap.md",
+			"/work/ock-omo-system/omo/src/features/boulder-state/storage.ts",
+			"/work/ock-omo-system/omo/src/features/claude-tasks/storage.ts",
+			"/work/ock-omo-system/omo/src/features/run-continuation-state/storage.ts"
+		],
+		"nonGoals": [
+			"Immediate implementation of storage migration",
+			"Deleting /.beads or /.sisyphus",
+			"General command-surface redesign outside the state architecture boundary"
+		]
+	},
+	"beadMetadata": {
+		"depends_on": [],
+		"parallel": false,
+		"conflicts_with": ["bd-x0u"],
+		"blocks": [],
+		"estimated_hours": 6
+	}
+}
