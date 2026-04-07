@@ -59,6 +59,7 @@ This state is important and sometimes durable across sessions, but it is operati
 Yes, but only if they are combined as **one operator-facing state model with two non-peer tiers**, not as a flat merged bucket.
 
 **Key conclusion:**
+
 - `.beads` should be the **durable ledger**
 - `.sisyphus` should be the **active execution layer**
 
@@ -67,6 +68,7 @@ This means the merge should happen at the **model level**, not by collapsing all
 ### 4) Correct authority split
 
 **Durable ledger authority (`/.beads`)**
+
 - task identity
 - durable status
 - dependencies
@@ -75,6 +77,7 @@ This means the merge should happen at the **model level**, not by collapsing all
 - verification history / durable proof
 
 **Active execution authority (`/.sisyphus`)**
+
 - current run state
 - continuation markers
 - boulder/session lineage
@@ -89,6 +92,7 @@ The Ultrabrain pass established that the design is coherent only if the system s
 > `.beads` records truth, `.sisyphus` carries motion.
 
 That means:
+
 - the tiers are not peers
 - active state may project from durable state
 - active state may checkpoint back into durable state
@@ -101,10 +105,12 @@ That means:
 ### Operator Model
 
 The merged system should teach:
+
 - **canonical work**
 - **active execution state**
 
 or equivalently:
+
 - **durable state**
 - **active state**
 
@@ -127,6 +133,7 @@ The merged system should define **one state architecture with two time horizons*
 ### Join Key
 
 The canonical join key should be:
+
 - **`bead_id`**
 
 Every runtime record that refers to durable work should be traceable back to one bead.
@@ -134,9 +141,140 @@ Every runtime record that refers to durable work should be traceable back to one
 ### Plan Settlement Rule
 
 Plans may exist in active form while evolving, but:
+
 - **approved plans must settle into durable bead artifacts**
 - active-layer plans should be temporary, compatibility-only, or execution scaffolding
 - approved plan truth must not remain dual-homed
+
+---
+
+## Overlap / Collision Map (Phase 1)
+
+Using the settled durable-versus-active model, the unresolved comparative domains narrow into the following overlap map. This section is intentionally **pre-authority**: it records collisions, provisional resolution paths, and provisional handoff rules without promoting them to final ownership decisions.
+
+### 1) Planning artifacts
+
+**OCK role / evidence**
+
+- OCK treats bead artifacts as the durable planning surface: `/.beads/artifacts/<bead-id>/prd.md` and optional `plan.md` are created and consumed by the bead workflow.
+- Evidence: `ock/README.md`, `ock/.opencode/README.md`, `ock/.opencode/command/create.md`, `ock/.opencode/command/start.md`, `ock/.opencode/command/plan.md`
+
+**OMO role / evidence**
+
+- OMO treats planning as a dedicated orchestration phase centered on Prometheus and `.sisyphus/plans/*.md`, with planner-specific runtime constraints.
+- Evidence: `omo/docs/guide/orchestration.md`, `omo/docs/reference/features.md`, `omo/src/plugin-handlers/plan-model-inheritance.ts`, `omo/src/hooks/prometheus-md-only/hook.ts`
+
+**Collision / overlap**
+
+- Both systems define a real planning surface, but OCK frames approved durable artifacts while OMO frames planning-in-motion and execution preparation.
+
+**Provisional resolution path**
+
+- **merge**
+
+**Provisional ownership / handoff rule**
+
+- Treat OMO planning material as the active-layer candidate while it is evolving; treat bead artifacts as the durable candidate once a plan becomes the approved execution contract.
+
+### 2) Command surface
+
+**OCK role / evidence**
+
+- OCK defines a repo-local bead-first slash-command workflow: `/create -> /start -> /ship`, with `/plan`, `/verify`, `/status`, and related commands under `.opencode/command/`.
+- Evidence: `ock/README.md`, `ock/.opencode/README.md`, `ock/.opencode/command/start.md`, `ock/.opencode/command/ship.md`, `ock/src/validation/command-doc.ts`
+
+**OMO role / evidence**
+
+- OMO defines its own built-in workflow commands and also acts as a command loader/merger across project, user, plugin, and compatibility paths.
+- Evidence: `omo/docs/reference/features.md`, `omo/docs/reference/configuration.md`, `omo/src/tools/slashcommand/command-discovery.ts`, `omo/src/plugin-handlers/command-config-handler.ts`, `omo/src/features/claude-code-command-loader/loader.ts`
+
+**Collision / overlap**
+
+- Both systems present viable user-facing command entry points, and OMO also determines the effective loaded command set at runtime.
+
+**Provisional resolution path**
+
+- **re-scope**
+
+**Provisional ownership / handoff rule**
+
+- Treat OCK repo-local commands as the candidate project-workflow layer; treat OMO command loading and compatibility behavior as the candidate runtime assembly layer until a single default command path is chosen.
+
+### 3) Verification
+
+**OCK role / evidence**
+
+- OCK treats verification as an explicit workflow gate with PRD-linked checks, `/verify`, and durable verification evidence such as `.beads/verify.log`.
+- Evidence: `ock/.opencode/README.md`, `ock/.opencode/command/verify.md`, `ock/.opencode/command/ship.md`, `ock/.opencode/command/lfg.md`
+
+**OMO role / evidence**
+
+- OMO embeds verification into orchestration through reminders, completion gates, approval pauses, diagnostics, and runtime verifier prompts.
+- Evidence: `omo/docs/guide/orchestration.md`, `omo/src/hooks/atlas/verification-reminders.ts`, `omo/src/hooks/atlas/final-wave-approval-gate.ts`, `omo/src/plugin/tool-execute-before.ts`
+
+**Collision / overlap**
+
+- Both systems define verification behavior, but OCK emphasizes durable workflow proof while OMO emphasizes runtime verification enforcement during orchestration.
+
+**Provisional resolution path**
+
+- **merge**
+
+**Provisional ownership / handoff rule**
+
+- Treat OMO verification flow as the active-layer candidate for running and enforcing checks; treat OCK bead artifacts and logs as the durable candidate for recording what was required and what passed.
+
+### 4) Memory / runtime context
+
+**OCK role / evidence**
+
+- OCK defines repo-local memory files, project-context injection, observation tools, and plugin-based context compression/injection behavior.
+- Evidence: `ock/.opencode/memory/README.md`, `ock/.opencode/opencode.json`, `ock/.opencode/plugin/README.md`, `ock/.opencode/plugin/memory.ts`, `ock/.opencode/plugin/lib/context.ts`, `ock/.opencode/plugin/lib/inject.ts`
+
+**OMO role / evidence**
+
+- OMO defines live session-time context injection, preemptive compaction, session model persistence, and active orchestration state under `.sisyphus`.
+- Evidence: `omo/docs/guide/orchestration.md`, `omo/src/features/context-injector/injector.ts`, `omo/src/plugin/chat-message.ts`, `omo/src/hooks/preemptive-compaction.ts`, `omo/src/features/boulder-state/storage.ts`, `omo/src/features/run-continuation-state/storage.ts`
+
+**Collision / overlap**
+
+- Both systems shape what the agent sees at runtime: OCK through memory and prompt injection, OMO through session-state injection, continuation, compaction, and orchestration state.
+
+**Provisional resolution path**
+
+- **re-scope**
+
+**Provisional ownership / handoff rule**
+
+- Treat OCK memory/project files as the durable-context candidate; treat OMO session injection, continuation, and active orchestration state as the active-context candidate.
+
+### 5) Model / provider plumbing
+
+**OCK role / evidence**
+
+- OCK includes repo-local agent model assignments, provider metadata, MCP config, and provider-shaping plugins such as Copilot auth/request handling.
+- Evidence: `ock/.opencode/opencode.json`, `ock/.opencode/plugin/README.md`, `ock/.opencode/plugin/copilot-auth.ts`, `ock/.opencode/plugin/sdk/copilot/copilot-provider.ts`
+
+**OMO role / evidence**
+
+- OMO includes model fallback chains, provider/config merge logic, runtime model resolution, context-limit handling, and installer-generated model configuration.
+- Evidence: `omo/docs/reference/configuration.md`, `omo/docs/guide/agent-model-matching.md`, `omo/src/plugin-config.ts`, `omo/src/plugin-handlers/provider-config-handler.ts`, `omo/src/shared/model-resolver.ts`, `omo/src/shared/model-requirements.ts`, `omo/src/cli/model-fallback.ts`
+
+**Collision / overlap**
+
+- Both systems contain model/provider behavior, but OMO more clearly acts as the runtime resolver while OCK still carries repo-local model/provider declarations and shaping logic.
+
+**Provisional resolution path**
+
+- **re-scope**
+
+**Provisional ownership / handoff rule**
+
+- Treat OCK-side model/provider settings as candidate declarative inputs where they remain repo-local; treat OMO-side resolution and fallback logic as the candidate runtime interpreter of those inputs.
+
+### Comparative takeaway
+
+This map is strong enough to enable the **candidate ownership matrix** as the next artifact. The remaining Phase 1 job is to convert these provisional resolution paths and handoff rules into domain-by-domain candidate authority without prematurely collapsing the work into Phase 2 architecture definition.
 
 ---
 
@@ -145,6 +283,7 @@ Plans may exist in active form while evolving, but:
 **Durable wins on conflict unless an explicit write-back checkpoint updates it.**
 
 This is the decisive rule because it converts the architecture from “sync two stores” into:
+
 - active state proposes
 - durable state records
 
@@ -202,17 +341,21 @@ To keep the model coherent over time, the merged system must enforce these const
 The safest migration path is logical unification before physical unification.
 
 ### Phase A — authority first
+
 - keep `/.beads` and `/.sisyphus`
 - document the two-tier model
 - encode precedence and join-key rules
 
 ### Phase B — eliminate duplicate durable meaning
+
 - make approved plans durable-bead artifacts
 - downgrade active-layer duplicates to compatibility or runtime scaffolding
 - prevent durable fields from remaining authoritative in active state
 
 ### Phase C — optional façade
+
 Later, if desired, introduce a unified operator-facing façade such as:
+
 - `.opencode/state/`
 - or another neutral path
 
