@@ -1,61 +1,75 @@
-import { TOOL_DESCRIPTION_NO_SKILLS, TOOL_DESCRIPTION_PREFIX } from "./constants"
-import { sortByScopePriority } from "./scope-priority"
-import type { SkillInfo } from "./types"
-import type { CommandInfo } from "../slashcommand/types"
+import { getCommandPriorityLabel } from "../slashcommand";
+import type { CommandInfo } from "../slashcommand/types";
+import {
+	TOOL_DESCRIPTION_NO_SKILLS,
+	TOOL_DESCRIPTION_PREFIX,
+} from "./constants";
+import { sortByScopePriority } from "./scope-priority";
+import type { SkillInfo } from "./types";
 
 function formatSkillCommand(skill: SkillInfo): string {
-  const lines = [
-    "  <command>",
-    `    <name>/${skill.name}</name>`,
-    `    <description>${skill.description}</description>`,
-    `    <scope>${skill.scope}</scope>`,
-  ]
+	const lines = [
+		"  <command>",
+		`    <name>/${skill.name}</name>`,
+		`    <description>${skill.description}</description>`,
+		`    <scope>${skill.scope}</scope>`,
+	];
 
-  if (skill.compatibility) {
-    lines.push(`    <compatibility>${skill.compatibility}</compatibility>`)
-  }
+	if (skill.compatibility) {
+		lines.push(`    <compatibility>${skill.compatibility}</compatibility>`);
+	}
 
-  lines.push("  </command>")
-  return lines.join("\n")
+	lines.push("  </command>");
+	return lines.join("\n");
 }
 
 function formatSlashCommand(command: CommandInfo): string {
-  const argumentHint = typeof command.metadata.argumentHint === "string"
-    ? command.metadata.argumentHint.trim()
-    : undefined
-  const lines = [
-    "  <command>",
-    `    <name>/${command.name}</name>`,
-    `    <description>${command.metadata.description || "(no description)"}</description>`,
-    `    <scope>${command.scope}</scope>`,
-  ]
+	const argumentHint =
+		typeof command.metadata.argumentHint === "string"
+			? command.metadata.argumentHint.trim()
+			: undefined;
+	const category = getCommandPriorityLabel(command.name);
+	const lines = [
+		"  <command>",
+		`    <name>/${command.name}</name>`,
+		`    <description>${command.metadata.description || "(no description)"}</description>`,
+		`    <scope>${command.scope}</scope>`,
+	];
 
-  if (argumentHint) {
-    lines.push(`    <argument>${argumentHint}</argument>`)
-  }
+	if (category !== "other") {
+		lines.push(`    <category>${category}</category>`);
+	}
 
-  lines.push("  </command>")
-  return lines.join("\n")
+	if (argumentHint) {
+		lines.push(`    <argument>${argumentHint}</argument>`);
+	}
+
+	lines.push("  </command>");
+	return lines.join("\n");
 }
 
-export function formatCombinedDescription(skills: SkillInfo[], commands: CommandInfo[]): string {
-  if (skills.length === 0 && commands.length === 0) {
-    return TOOL_DESCRIPTION_NO_SKILLS
-  }
+export function formatCombinedDescription(
+	skills: SkillInfo[],
+	commands: CommandInfo[],
+): string {
+	if (skills.length === 0 && commands.length === 0) {
+		return TOOL_DESCRIPTION_NO_SKILLS;
+	}
 
-  const availableItems = [
-    ...sortByScopePriority(skills).map(formatSkillCommand),
-    ...sortByScopePriority(commands).map(formatSlashCommand),
-  ]
+	const availableItems = [
+		...sortByScopePriority(skills).map(formatSkillCommand),
+		...sortByScopePriority(commands).map(formatSlashCommand),
+	];
 
-  if (availableItems.length === 0) {
-    return TOOL_DESCRIPTION_PREFIX
-  }
+	if (availableItems.length === 0) {
+		return TOOL_DESCRIPTION_PREFIX;
+	}
 
-  return `${TOOL_DESCRIPTION_PREFIX}
+	return `${TOOL_DESCRIPTION_PREFIX}
 <available_items>
-Priority: project > user > opencode > builtin/plugin | Skills listed before commands
+Priority: primary > support > other > compatibility | OCK bead-first workflow commands prefer opencode-project > project > config > user > opencode > builtin > plugin
+Skills listed before commands
 Invoke via: skill(name="item-name") - omit leading slash for commands.
 ${availableItems.join("\n")}
-</available_items>`
+</available_items>`;
 }
