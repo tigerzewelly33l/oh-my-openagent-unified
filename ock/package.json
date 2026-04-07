@@ -1,0 +1,78 @@
+{
+	"name": "opencodekit",
+	"version": "0.20.1",
+	"description": "CLI tool for bootstrapping and managing OpenCodeKit projects",
+	"keywords": [
+		"agents",
+		"cli",
+		"mcp",
+		"opencode",
+		"opencodekit",
+		"template"
+	],
+	"homepage": "https://github.com/opencodekit-template/opencodekit-template#readme",
+	"bugs": {
+		"url": "https://github.com/opencodekit-template/opencodekit-template/issues"
+	},
+	"license": "MIT",
+	"author": "heyhuynhgiabuu <buub1309120@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/opencodekit-template/opencodekit-template.git"
+	},
+	"bin": {
+		"ock": "dist/index.js"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"type": "module",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org"
+	},
+	"scripts": {
+		"dev": "tsx src/index.ts",
+		"build": "tsdown && mkdir -p dist/template && rsync -av --exclude=node_modules --exclude=dist --exclude=.git --exclude=coverage --exclude=.next --exclude=.turbo --exclude=logs --exclude=package-lock.json .opencode/ dist/template/.opencode/",
+		"typecheck": "tsgo --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"validate:command-doc": "tsx src/validation/command-doc.ts --check",
+		"validate:docs-drift": "tsx src/validation/docs-drift.ts --check",
+		"validate:skill-lint": "tsx src/validation/skill-lint.ts --check",
+		"validate:governance": "npm run validate:command-doc && npm run validate:docs-drift && npm run validate:skill-lint",
+		"lint": "oxlint .",
+		"lint:fix": "oxlint --fix .",
+		"format": "oxfmt",
+		"format:check": "oxfmt --check"
+	},
+	"dependencies": {
+		"@ai-sdk/provider": "^3.0.8",
+		"@ai-sdk/provider-utils": "^4.0.15",
+		"@clack/prompts": "^0.7.0",
+		"@opencode-ai/plugin": "^1.2.6",
+		"cac": "^6.7.14",
+		"cli-table3": "^0.6.5",
+		"diff": "^8.0.3",
+		"env-paths": "^4.0.0",
+		"node-machine-id": "^1.1.12",
+		"ora": "^9.3.0",
+		"picocolors": "^1.1.1",
+		"zod": "^3.25.76"
+	},
+	"devDependencies": {
+		"@types/diff": "^8.0.0",
+		"@types/node": "^22.19.11",
+		"@typescript/native-preview": "latest",
+		"oxfmt": "^0.23.0",
+		"oxlint": "^1.48.0",
+		"tsdown": "latest",
+		"tsx": "latest",
+		"typescript": "^5.9.3",
+		"vitest": "latest"
+	},
+	"engines": {
+		"node": ">=20.19.0"
+	}
+}
