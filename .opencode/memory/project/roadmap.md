@@ -41,6 +41,7 @@ Each phase below defines:
 - Durable-versus-active state authority draft with precedence and join-key rules
 - Preserved strengths list
 - Candidate ownership matrix for core domains
+- Command/runtime implementation notes for enforcing the durable-versus-active model in later beads
 
 ### Required Decisions
 
@@ -49,6 +50,7 @@ Each phase below defines:
 - Which duplicated concepts are merge candidates
 - Which duplicated concepts should be deprecated rather than merged
 - How the durable-versus-active overlap resolves into one state authority model without skipping directly to backbone integration
+- How commands, active runtime records, and verification checkpoints should enforce that state model in practice
 
 ### Decision Gate
 
@@ -76,6 +78,7 @@ Move to Phase 2 only when all of the following are true:
 - Updated `project.md` as the architecture charter
 - Ownership and authority matrix
 - Precedence rule set
+- Default workflow and command migration path
 - Project-level non-goals list
 - Integration boundary notes for planning, execution, memory, commands, and provider/runtime concerns
 
@@ -83,6 +86,7 @@ Move to Phase 2 only when all of the following are true:
 
 - Final authority per core domain
 - What counts as compatibility-only behavior
+- What the default operator workflow path is and which commands are adapters versus primary path
 - Which legacy concepts are retired, renamed, or absorbed
 - How personal utility acts as a tie-break rule in design choices
 
@@ -243,9 +247,9 @@ This phase is complete only when all of the following are true:
 
 ## Current Roadmap Position
 
-**Active Phase:** Phase 1, Comparative Research  
-**Next Required Output:** Candidate ownership matrix and overlap/collision map derived from the new state authority draft
-**Do Not Start Yet:** Backbone integration or workflow merging without Phase 1 gate evidence
+**Active Phase:** Phase 3, Backbone Integration
+**Next Required Output:** Implement command/runtime enforcement of the approved bead-backed workflow path, durable write-back checkpoints, and compatibility-command demotion rules
+**Do Not Start Yet:** Broad command retirement or workflow cleanup beyond the approved default path until backbone enforcement exists
 
 ---
 

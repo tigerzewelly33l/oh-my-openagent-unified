@@ -20,24 +20,38 @@ The end state is one system with one mental model, one command surface, one auth
 
 Build a merged system that lets one personal power user plan, implement, verify, and iterate without having to decide whether a task belongs to “OCK mode” or “OMO mode.”
 
+## Operational One-System Description
+
+The merged system should operate as one bead-backed workflow shell with one execution runtime beneath it: the user enters through a single project command surface, planning artifacts and approved work truth settle into `/.beads`, OMO-owned execution and verification machinery runs against that durable contract, and `/.sisyphus` carries only active orchestration state keyed back to durable work through `bead_id`. In daily use, the operator should experience one lifecycle from task creation through verified delivery rather than a handoff between legacy subsystem identities.
+
 ## Authority Model
 
 This project must assign one clear owner to each concern. Shared responsibility is allowed only during transition, never as the final state.
 
 ### Ownership Domains
 
-These are the current **candidate owners** for the merged system during Phase 1 research. They guide comparison and conflict resolution now, but they are not yet the approved ownership matrix.
+These are the approved final owners for the merged system's core domains. Compatibility behavior may survive during transition, but it does not change domain authority.
 
-| Domain                      | Candidate Owner                             | What That Means                                                                 |
-| --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
-| Planning artifacts          | OCK side of the merged system               | PRDs, plans, research notes, roadmap/state framing, execution checklists        |
-| Project structure           | OCK side of the merged system               | Template layout, default folders, artifact placement, project scaffolding rules |
-| Execution engine            | OMO side of the merged system               | Task execution, code changes, implementation loops, tool-driven completion      |
-| Agent orchestration         | OMO side of the merged system               | Subagents, delegation, parallel work, review passes, coordination rules         |
-| Verification                | OMO side of the merged system               | Typecheck, lint, tests, build validation, completion gates                      |
-| Memory and runtime context  | Unified layer with explicit source priority | Persistent context must have one precedence model, not tool-specific folklore   |
-| Command surface             | Unified layer                               | User-facing commands must feel native to one system, not a wrapped pair         |
-| Model and provider plumbing | OMO side of the merged system               | Agent model selection, provider configuration, execution runtime behavior       |
+| Domain                           | Final Owner                   | What That Means                                                                                   |
+| -------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| Planning artifacts               | OCK side of the merged system | PRDs, approved plans, research notes, roadmap/state framing, and other durable planning artifacts |
+| Project structure                | OCK side of the merged system | Template layout, default folders, artifact placement, and project scaffolding rules               |
+| Durable project memory           | OCK side of the merged system | Repo-local durable memory files, injected project context, and long-lived project knowledge       |
+| Project workflow command surface | OCK side of the merged system | The primary user-facing lifecycle commands and bead-backed workflow definitions                   |
+| Execution engine                 | OMO side of the merged system | Task execution, code changes, implementation loops, and tool-driven completion                    |
+| Agent orchestration              | OMO side of the merged system | Subagents, delegation, parallel work, review passes, and coordination rules                       |
+| Verification runtime             | OMO side of the merged system | Typecheck, lint, tests, build execution, completion gates, and verification enforcement           |
+| Active runtime context           | OMO side of the merged system | Session shaping, active context injection, continuation state, and active run memory              |
+| Runtime command assembly         | OMO side of the merged system | Runtime discovery, merge, deduplication, precedence handling, and execution of commands/skills    |
+| Model and provider plumbing      | OMO side of the merged system | Agent model selection, provider configuration, runtime capability matching, and fallback behavior |
+
+### Integration Boundaries
+
+- OCK owns the durable planning shell: planning artifacts, project structure, durable project memory, and the primary project workflow command surface.
+- OMO owns the execution runtime: execution, orchestration, verification enforcement, active runtime context, runtime command assembly, and model/provider plumbing.
+- When OMO executes an OCK-defined workflow step, approved artifacts and approval-relevant evidence still write back to OCK-owned durable locations under `/.beads`.
+- Runtime-discovered or compatibility commands may invoke the workflow, but they must not become peer authority to the OCK-owned primary command surface.
+- Durable project memory remains versioned under repo-local memory files; OMO-owned active context may shape a run, but it must not silently become durable project truth.
 
 ## Precedence Rules
 
@@ -81,6 +95,69 @@ The durable ledger records approved project truth. The active execution layer ca
 - Approved plans settle into `.beads/artifacts/<bead-id>/plan.md` as the durable execution contract.
 - Active copies become compatibility-only or execution scaffolding after settlement; they do not remain peer durable truth.
 - Legacy paths may survive during transition, but only as compatibility-only behavior, derived state, or active-layer scaffolding.
+
+## Compatibility-Only Behavior
+
+Compatibility-only behavior is temporary support for legacy paths during migration. It may preserve usability, but it must not preserve duplicate authority.
+
+### Allowed Forms
+
+| Form               | Allowed Purpose                                                                              | Not Allowed To Become                                     |
+| ------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Adapter command    | Invoke the OCK-owned primary workflow path from a legacy entry point                         | A peer user-facing workflow authority                     |
+| Derived view       | Mirror or summarize durable/active state for convenience                                     | A second source of durable truth                          |
+| Active scaffolding | Hold drafts, runtime decomposition, continuation markers, or execution notes in `/.sisyphus` | The approved plan, durable status, or verification ledger |
+| Migration helper   | Ease transition while docs, habits, and callers move to the primary path                     | A permanent requirement for normal operation              |
+
+### Prohibited Uses
+
+- Compatibility paths must not own durable status, dependencies, approved plan contents, handoff state, or verification evidence.
+- Compatibility commands must not become peer starting points that compete with the OCK-owned project workflow command surface.
+- Compatibility records may reference durable work through `bead_id`, but they must not silently mutate durable truth outside named write-back checkpoints.
+- If a legacy path starts accumulating new durable meaning, the migration has failed and the architecture must be reopened instead of normalized.
+
+### Retirement Rules
+
+1. Once the final owner for a concern is implemented and documented, new work must target that owner directly.
+2. A compatibility path may remain only as a thin adapter, derived view, or active-layer scaffold after the primary path exists.
+3. A compatibility path should be retired when its callers, docs, and operational checks no longer depend on it for normal use.
+4. No compatibility path may justify its survival by holding unique durable truth; if it still does, that truth must migrate first.
+5. The exact deprecated-command list belongs to workflow convergence work, but every item on that list must follow these retirement rules.
+
+## Default Workflow Path
+
+The merged system has one default bead-backed operator path:
+
+1. `/create <description>`
+2. `/start <bead-id>`
+3. `/plan <bead-id>` _(optional when deeper execution guidance is needed)_
+4. `/ship <bead-id>`
+5. `/pr <bead-id>`
+
+### Workflow rules
+
+- `/ship` is the default execution-and-delivery step. It owns implementation, mandatory verification, review, and durable write-back before follow-through actions like PR creation or bead closing.
+- `/verify` remains an explicit support command for standalone preflight or inspection, but it is not a second primary delivery path.
+- `/status`, `/resume`, `/handoff`, and `/research` are support commands around the same `bead_id`, not peer workflow entry points.
+
+## Command Migration Path
+
+The merged command surface must classify commands by authority instead of treating every discovered command as an equal workflow root.
+
+| Class                                     | Commands                                                         | Final role                                                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Primary lifecycle                         | `/create`, `/start`, `/ship`, `/pr`                              | Canonical user-facing workflow path                                                        |
+| Subordinate lifecycle support             | `/plan`, `/verify`                                               | Same workflow, narrower purpose                                                            |
+| Continuity support                        | `/status`, `/resume`, `/handoff`, `/research`                    | State visibility, resumability, and context gathering                                      |
+| Convenience adapters                      | `/lfg`, `/compound`                                              | May automate or extend the primary workflow, but must route into it rather than replace it |
+| Specialty sidecars                        | `/design`, `/ui-review`, `/ui-slop-check`, `/review-codebase`    | Optional non-lifecycle tools                                                               |
+| Runtime-discovered compatibility commands | legacy or compatibility entries surfaced by OMO runtime assembly | Temporary adapters only, never peer workflow authority                                     |
+
+### Command migration rules
+
+- Runtime command assembly must surface the OCK-owned primary workflow path as the canonical project path.
+- Compatibility or legacy entries may remain during migration only if they invoke the same bead-backed lifecycle underneath.
+- Any command that can create, claim, ship, or publish work without routing through the bead-backed durable path is compatibility-only at best and a deprecation candidate once adapters exist.
 
 ## Observable Outcomes
 
@@ -127,9 +204,9 @@ These are out of scope unless a later artifact explicitly brings them back in:
 
 ## Current Phase
 
-**Comparative Research with architectural intent**
+**Phase 3 readiness: Backbone Integration with workflow-enforcement scope**
 
-This phase is not a passive audit. Its purpose is to produce the ownership map, precedence rules, and artifact set required to make implementation decisions without carrying legacy ambiguity forward.
+Architecture-definition work has now settled authority, precedence, compatibility rules, and the default workflow path. The next implementation wave must encode those rules into command/runtime behavior: surface the bead-backed primary workflow, link active state back to durable work, and enforce durable write-back before active cleanup or follow-through claims.
 
 See [roadmap.md](./roadmap.md) for required phase outputs and [state.md](./state.md) for the live steering checkpoint.
 
