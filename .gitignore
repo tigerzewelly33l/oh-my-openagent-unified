@@ -6,3 +6,4 @@
 .opencode/memory.db.corrupt.*
 .opencode/memory-recovery.log
 .opencode/opencode.json.tui-migration.bak
+.worktrees/
