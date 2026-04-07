@@ -1,0 +1,130 @@
+{
+  "beadId": "bd-x0u",
+  "prdName": "omo-bead-process-adapter",
+  "tasks": [
+    {
+      "id": "research-1",
+      "category": "research",
+      "title": "Audit local OmO workflow seams",
+      "description": "A file-backed research artifact exists that maps the local OmO source, runtime plugin entry, and process or skill seams against the root OCK bead-first contract.",
+      "steps": [
+        "test -f '/.beads/artifacts/bd-x0u/research.md'",
+        "grep -n '/root/.config/opencode/omo\\|file:///root/.config/opencode/omo\\|src/index.ts\\|src/plugin-config.ts\\|bead' '/.beads/artifacts/bd-x0u/research.md'"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "/.beads/artifacts/bd-x0u/research.md",
+          "/root/.config/opencode/opencode.json",
+          "/root/.config/opencode/omo/package.json",
+          "/root/.config/opencode/omo/AGENTS.md",
+          "/root/.config/opencode/omo/src/index.ts",
+          "/root/.config/opencode/omo/src/plugin-config.ts"
+        ]
+      }
+    },
+    {
+      "id": "design-1",
+      "category": "design",
+      "title": "Define local OmO adapter boundary",
+      "description": "A concrete ownership model and implementation boundary exist for making the local OmO source honor the root OCK bead-first contract.",
+      "steps": [
+        "test -f '/.beads/artifacts/bd-x0u/plan.md'",
+        "grep -n 'adapter\\|ownership\\|Affected Files\\|file:///root/.config/opencode/omo' '/.beads/artifacts/bd-x0u/plan.md'"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [
+          "research-1"
+        ],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "/.beads/artifacts/bd-x0u/plan.md",
+          "/root/.config/opencode/opencode.json",
+          "/root/.config/opencode/omo/AGENTS.md",
+          "/root/.config/opencode/omo/src/index.ts",
+          "/root/.config/opencode/omo/src/plugin-config.ts"
+        ]
+      }
+    },
+    {
+      "id": "integration-1",
+      "category": "integration",
+      "title": "Implement local OmO process alignment",
+      "description": "The local OmO source uses the root OCK bead-first contract without drifting into Bun-installed or cache-only workflow assumptions.",
+      "steps": [
+        "grep -n 'file:///root/.config/opencode/omo' '/root/.config/opencode/opencode.json'",
+        "test -f '/root/.config/opencode/omo/dist/index.js'"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [
+          "design-1"
+        ],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "/root/.config/opencode/opencode.json",
+          "/root/.config/opencode/omo/src/index.ts",
+          "/root/.config/opencode/omo/src/plugin-config.ts",
+          "/root/.config/opencode/omo/README.md"
+        ]
+      }
+    },
+    {
+      "id": "verification-1",
+      "category": "verification",
+      "title": "Verify canonical bead-first loop",
+      "description": "The final implementation preserves the agreed `/create` → `/research` → `/start` → `/plan` → `/ship` → review → `/pr` loop while OmO is loaded from the local source path.",
+      "steps": [
+        "grep -n '/create\\|/research\\|/start\\|/plan\\|/ship\\|/pr' '/.beads/artifacts/bd-x0u/prd.md'",
+        "grep -n 'file:///root/.config/opencode/omo' '/root/.config/opencode/opencode.json'",
+        "test -f '/.beads/artifacts/bd-x0u/progress.txt'"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [
+          "integration-1"
+        ],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "/root/.config/opencode/opencode.json",
+          "/.beads/artifacts/bd-x0u/prd.md",
+          "/.beads/artifacts/bd-x0u/progress.txt"
+        ]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Bead lifecycle remains driven by root workflow docs under /.opencode/command/.",
+      "Durable workflow state for this bead stays in /.beads and /.beads/artifacts/bd-x0u/.",
+      "OpenCode runtime loads OmO from file:///root/.config/opencode/omo."
+    ],
+    "keyFiles": [
+      "/root/.config/opencode/opencode.json",
+      "/root/.config/opencode/omo/package.json",
+      "/root/.config/opencode/omo/AGENTS.md",
+      "/root/.config/opencode/omo/src/index.ts",
+      "/root/.config/opencode/omo/src/plugin-config.ts",
+      "/.beads/artifacts/bd-x0u/research.md",
+      "/.beads/artifacts/bd-x0u/plan.md"
+    ],
+    "nonGoals": [
+      "Changes against /root/.bun/install/global/node_modules/opencodekit or /root/.cache/opencode/packages/** as durable targets",
+      "Redesigning the OCK contract itself"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": false,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 8
+  }
+}
