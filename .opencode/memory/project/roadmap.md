@@ -38,6 +38,7 @@ Each phase below defines:
 - OCK capability audit
 - OMO capability audit
 - Overlap and collision map
+- Durable-versus-active state authority draft with precedence and join-key rules
 - Preserved strengths list
 - Candidate ownership matrix for core domains
 
@@ -47,6 +48,7 @@ Each phase below defines:
 - Which capabilities are clearly OMO-derived
 - Which duplicated concepts are merge candidates
 - Which duplicated concepts should be deprecated rather than merged
+- How the durable-versus-active overlap resolves into one state authority model without skipping directly to backbone integration
 
 ### Decision Gate
 
@@ -242,7 +244,7 @@ This phase is complete only when all of the following are true:
 ## Current Roadmap Position
 
 **Active Phase:** Phase 1, Comparative Research  
-**Next Required Output:** Candidate ownership matrix and overlap/collision map  
+**Next Required Output:** Candidate ownership matrix and overlap/collision map derived from the new state authority draft
 **Do Not Start Yet:** Backbone integration or workflow merging without Phase 1 gate evidence
 
 ---

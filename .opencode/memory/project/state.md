@@ -7,7 +7,7 @@ updated: 2026-04-07
 
 ## Current Position
 
-**Active Bead:** (none active)  
+**Active Bead:** bd-l1s
 **Status:** In Progress  
 **Started:** 2026-04-07  
 **Active Phase:** Phase 1, Comparative Research  
@@ -21,27 +21,33 @@ This is not a minor open question. It is the main blocker to safe integration wo
 
 ## What Was Completed Recently
 
-| Date       | Item                     | Outcome                                                                   |
-| ---------- | ------------------------ | ------------------------------------------------------------------------- |
-| 2026-04-07 | Planning context refresh | Replaced inherited OpenCodeKit framing with OCK+OMO merged-system framing |
+| Date       | Item                      | Outcome                                                                                                |
+| ---------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 2026-04-07 | Planning context refresh  | Replaced inherited OpenCodeKit framing with OCK+OMO merged-system framing                              |
+| 2026-04-07 | Unified state model draft | Defined durable ledger versus active execution tiers and resolved one precedence conflict in principle |
 
 ## Active Architectural Decisions
 
-| Date       | Decision                           | Why It Exists                                                  | Current Effect                               |
-| ---------- | ---------------------------------- | -------------------------------------------------------------- | -------------------------------------------- |
-| 2026-04-07 | Research-first before integration  | Prevents rebranding duplicate systems as a merge               | Blocks premature implementation              |
-| 2026-04-07 | Personal utility first             | The primary test is whether daily personal work gets easier    | Acts as tie-break rule for design choices    |
-| 2026-04-07 | OMO is part of the validation loop | The system should inspect and improve itself while being built | Keeps orchestration and verification central |
+| Date       | Decision                                          | Why It Exists                                                  | Current Effect                                                         |
+| ---------- | ------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 2026-04-07 | Research-first before integration                 | Prevents rebranding duplicate systems as a merge               | Blocks premature implementation                                        |
+| 2026-04-07 | Personal utility first                            | The primary test is whether daily personal work gets easier    | Acts as tie-break rule for design choices                              |
+| 2026-04-07 | OMO is part of the validation loop                | The system should inspect and improve itself while being built | Keeps orchestration and verification central                           |
+| 2026-04-07 | `/.beads` is the durable ledger                   | Durable work truth needs one explicit owner                    | Approved artifacts and durable status now have a named authority       |
+| 2026-04-07 | `/.sisyphus` is the active execution layer        | Runtime motion needs a first-class but non-peer tier           | Planning-in-progress and continuation stay active-layer concerns       |
+| 2026-04-07 | Durable wins unless checkpointed                  | Precedence must prevent peer durable truth                     | Active state cannot override durable truth without explicit write-back |
+| 2026-04-07 | `bead_id` is the canonical join key               | Durable work and active execution need one link contract       | Future runtime records now have a named traceability target            |
+| 2026-04-07 | Approved plans settle into durable bead artifacts | Approved plan truth must not remain dual-homed                 | `.beads/artifacts/<bead-id>/plan.md` is now the approved-plan target   |
 
 ## Active Blockers
 
 Blockers stop forward motion now. These are not hypothetical.
 
-| Type         | Description                                                                                                                | Since      | What It Blocks                                                  |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
-| Architecture | No approved ownership matrix for planning, execution, memory, commands, and runtime concerns                              | 2026-04-07 | Any implementation that would otherwise bake in split authority |
-| Architecture | No explicit precedence model for OCK-versus-OMO conflicts                                                                  | 2026-04-07 | Safe merging of commands, workflows, and context behavior       |
-| Definition   | The project can describe the goal, but not yet the final merged system in operational terms tight enough to implement from | 2026-04-07 | Architecture definition and backbone planning                   |
+| Type         | Description                                                                                                     | Since      | What It Blocks                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| Architecture | No approved ownership matrix for planning, execution, memory, commands, and runtime concerns                    | 2026-04-07 | Any implementation that would otherwise bake in split authority |
+| Architecture | Command and runtime behavior do not yet implement the durable-versus-active model                               | 2026-04-07 | Safe merging of commands, workflows, and context behavior       |
+| Definition   | The project still lacks a full ownership matrix and default workflow definition beyond the state-model decision | 2026-04-07 | Architecture definition and backbone planning                   |
 
 ## Active Risks
 
@@ -66,13 +72,13 @@ Assumptions are working bets, not facts. Replace them with evidence when possibl
 
 ## Open Questions That Still Need Answers
 
-| Question                                                                                  | Why It Matters                                        | Blocking |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------- |
-| What remains explicitly OCK-owned in the final system?                                    | Defines stable planning and structure authority       | Yes      |
-| What remains explicitly OMO-owned in the final system?                                    | Defines stable execution and orchestration authority  | Yes      |
-| Which duplicated concepts should be merged, deprecated, or treated as compatibility-only? | Prevents duplicate authority from surviving the merge | Yes      |
-| What is the precedence rule when inherited behaviors conflict?                            | Required before command and memory unification        | Yes      |
-| What is the default end-to-end user path in the merged system?                            | Required for workflow convergence                     | Not yet  |
+| Question                                                                                    | Why It Matters                                        | Blocking |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------- |
+| What remains explicitly OCK-owned in the final system?                                      | Defines stable planning and structure authority       | Yes      |
+| What remains explicitly OMO-owned in the final system?                                      | Defines stable execution and orchestration authority  | Yes      |
+| Which duplicated concepts should be merged, deprecated, or treated as compatibility-only?   | Prevents duplicate authority from surviving the merge | Yes      |
+| How should command and runtime behavior enforce the durable-versus-active rule in practice? | Required before command and memory unification        | Yes      |
+| What is the default end-to-end user path in the merged system?                              | Required for workflow convergence                     | Not yet  |
 
 ## Required Next Outputs
 
@@ -82,7 +88,7 @@ These are the next concrete items needed to move the project.
 2. [ ] OMO capability audit
 3. [ ] Overlap and collision map
 4. [ ] Candidate ownership matrix
-5. [ ] First explicit precedence rule draft
+5. [ ] Command/runtime implementation notes for the unified state model
 
 ## Gate Readiness
 
@@ -90,9 +96,9 @@ These are the next concrete items needed to move the project.
 
 | Gate Requirement                                               | Status      |
 | -------------------------------------------------------------- | ----------- |
-| Every core domain has a candidate owner                        | Not Started |
-| Major overlaps have named resolution paths                     | Not Started |
-| At least one precedence conflict is resolved in principle      | Not Started |
+| Every core domain has a candidate owner                        | In Progress |
+| Major overlaps have named resolution paths                     | In Progress |
+| At least one precedence conflict is resolved in principle      | Complete    |
 | The merged system can be described operationally as one system | Not Started |
 
 **Gate Verdict:** Not ready to advance.
@@ -116,7 +122,7 @@ These are the next concrete items needed to move the project.
 ## Session Handoff
 
 **Last Session:** 2026-04-07  
-**Next Session Priority:** Produce the comparative audits, collision map, ownership matrix, and first precedence draft  
+**Next Session Priority:** Produce the comparative audits, collision map, ownership matrix, and command/runtime follow-through for the new state model
 **Known Reality:** The main problem is still architectural definition, not implementation capacity  
 **Primary References:**
 

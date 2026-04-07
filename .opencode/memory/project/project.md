@@ -26,7 +26,9 @@ This project must assign one clear owner to each concern. Shared responsibility 
 
 ### Ownership Domains
 
-| Domain                      | Final Owner                                 | What That Means                                                                 |
+These are the current **candidate owners** for the merged system during Phase 1 research. They guide comparison and conflict resolution now, but they are not yet the approved ownership matrix.
+
+| Domain                      | Candidate Owner                             | What That Means                                                                 |
 | --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
 | Planning artifacts          | OCK side of the merged system               | PRDs, plans, research notes, roadmap/state framing, execution checklists        |
 | Project structure           | OCK side of the merged system               | Template layout, default folders, artifact placement, project scaffolding rules |
@@ -60,6 +62,25 @@ When two valid designs exist, choose the one that reduces friction for daily per
 ### Rule 5: Planning must constrain execution
 
 Plans, PRDs, and state documents are not narrative decoration. They exist to shape execution and block drift. If they do not alter behavior, they should be simplified or removed.
+
+## Unified State Model
+
+The merged system uses one operator-facing state model with two non-peer tiers: the **durable ledger** and the **active execution layer**.
+
+The durable ledger records approved project truth. The active execution layer carries planning and runtime motion. These tiers are intentionally asymmetrical: if active state is lost, approved project truth must still survive in durable state.
+
+| Tier         | Final Role             | Owns                                                                                                                                    |
+| ------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `/.beads`    | Durable ledger         | task identity, durable status, dependencies, approved plan, handoff state, verification evidence, approved artifacts                    |
+| `/.sisyphus` | Active execution layer | planning-in-progress, boulder/session lineage, continuation markers, runtime decomposition, execution scratch notes, active run context |
+
+### State Rules
+
+- Durable wins on conflict unless an explicit checkpoint writes back to durable state.
+- `bead_id` is the canonical join key for active records that refer to durable work.
+- Approved plans settle into `.beads/artifacts/<bead-id>/plan.md` as the durable execution contract.
+- Active copies become compatibility-only or execution scaffolding after settlement; they do not remain peer durable truth.
+- Legacy paths may survive during transition, but only as compatibility-only behavior, derived state, or active-layer scaffolding.
 
 ## Observable Outcomes
 

@@ -1,0 +1,23 @@
+# Progress Log
+
+Bead: bd-l1s
+Started: 2026-04-07
+
+## Codebase Patterns
+
+- OCK durable work truth lives in `/.beads/issues.jsonl` and `/.beads/artifacts/<bead-id>/...`.
+- OMO active execution truth lives in `/.sisyphus/*`, especially boulder, continuation, and task decomposition state.
+- Architecture beads in this repo should update `.opencode/memory/project/*.md` first, then align bead-scoped task artifacts and steering docs without drifting into runtime changes.
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## 2026-04-07
+
+- Task `research-1` verified existing research artifact and source evidence; marked pass in `prd.json`.
+- Task `design-1` updated `.opencode/memory/project/project.md` and `.opencode/memory/project/state.md` to define the durable ledger, active execution layer, precedence rule, and `bead_id` join-key contract.
+- Task `architecture-1` updated `.opencode/memory/project/roadmap.md` to track the durable-versus-active state authority artifact without advancing phases.
+- Verification: bead greps passed; `ock` lint/typecheck/test/build passed after installing dependencies; `omo` typecheck/build passed after `bun install`; `omo` test suite still has pre-existing failures outside this bead.
+- Manual QA: read back the exact changed sections in `project.md`, `state.md`, and `roadmap.md` to confirm the intended wording landed and stayed in scope.
+- Review follow-up: aligned `project.md` ownership language to Phase 1 candidate-owner status and updated `state.md` gate status from `Not Started` to `In Progress` so the steering docs no longer contradict each other.
