@@ -1,9 +1,0 @@
-.DS_Store
-.opencode/memory.db
-.opencode/memory.db-*
-.opencode/memory.db-shm
-.opencode/memory.db-wal
-.opencode/memory.db.corrupt.*
-.opencode/memory-recovery.log
-.opencode/opencode.json.tui-migration.bak
-.worktrees/
