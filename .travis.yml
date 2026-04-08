@@ -1,0 +1,76 @@
+dist: jammy
+os: linux
+language: minimal
+
+branches:
+  only:
+    - main
+    - dev
+
+cache:
+  directories:
+    - /home/travis/.bun/install/cache
+    - /home/travis/.npm
+
+jobs:
+  include:
+    - name: "oh-my-openagent: test + typecheck"
+      env:
+        - PRODUCT_DIR=oh-my-openagent
+        - BUN_VERSION=1.3.11
+        - BUN_INSTALL_ALLOW_SCRIPTS=@ast-grep/napi
+      before_install:
+        - curl -fsSL https://bun.sh/install | bash -s -- bun-v${BUN_VERSION}
+        - export BUN_INSTALL="${HOME}/.bun"
+        - export PATH="${BUN_INSTALL}/bin:${PATH}"
+        - bun --version
+      install:
+        - pushd "$PRODUCT_DIR"
+        - bun install
+        - popd
+      script:
+        - pushd "$PRODUCT_DIR"
+        - bun run script/run-ci-tests.ts
+        - bun run typecheck
+        - bunx tsc --noEmit -p script/tsconfig.json
+        - popd
+
+    - name: "oh-my-openagent: build"
+      env:
+        - PRODUCT_DIR=oh-my-openagent
+        - BUN_VERSION=1.3.11
+        - BUN_INSTALL_ALLOW_SCRIPTS=@ast-grep/napi
+      before_install:
+        - curl -fsSL https://bun.sh/install | bash -s -- bun-v${BUN_VERSION}
+        - export BUN_INSTALL="${HOME}/.bun"
+        - export PATH="${BUN_INSTALL}/bin:${PATH}"
+        - bun --version
+      install:
+        - pushd "$PRODUCT_DIR"
+        - bun install
+        - popd
+      script:
+        - pushd "$PRODUCT_DIR"
+        - bun run build
+        - test -f dist/index.js
+        - test -f dist/index.d.ts
+        - popd
+
+    - name: "opencodekit-template: validate"
+      language: node_js
+      node_js:
+        - "20.19.0"
+      env:
+        - PRODUCT_DIR=opencodekit-template
+      install:
+        - pushd "$PRODUCT_DIR"
+        - npm ci
+        - popd
+      script:
+        - pushd "$PRODUCT_DIR"
+        - npm run typecheck
+        - npm run lint
+        - npm run test
+        - npm run build
+        - npm run validate:governance
+        - popd
