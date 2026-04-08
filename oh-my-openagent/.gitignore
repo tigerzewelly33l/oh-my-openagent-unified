@@ -37,3 +37,9 @@ notepad.md
 oauth-success.html
 *.bun-build
 .omx/
+
+# Local runtime and eval artifacts
+.opencode/background-tasks.json
+.opencode/skills/work-with-pr-workspace/iteration-1/eval-*/eval_metadata.json
+.opencode/skills/work-with-pr-workspace/iteration-1/eval-*/**/timing.json
+.opencode/skills/work-with-pr-workspace/iteration-1/eval-*/**/grading.json
