@@ -1,6 +1,7 @@
 # OCK ↔ OMO Bridge Unification
 
 ## TL;DR
+
 > **Summary**: Unify the MVP around OCK as the front door and OMO as the only runtime owner by migrating shipped OCK content onto OMO session / skill-MCP semantics, hardening init/upgrade + diagnostics, and removing duplicate OCK runtime plugins only after compatibility is proven.
 > **Deliverables**:
 > - Canonical project-local bridge contract for `.opencode/oh-my-openagent.jsonc` and plugin registration
@@ -13,28 +14,34 @@
 > **Critical Path**: Task 1 → Tasks 3/4 → Tasks 5/6 → Task 7 → Task 8
 
 ## Context
+
 ### Original Request
+
 - “based on our MVP or implementation what is next that we need to plan and execute?”
 
 ### Interview Summary
+
 - The likely MVP is the unified product defined in `/work/ock-omo-system/MVP.md`, not either repo in isolation.
 - The user selected **Bridge Unification** over release hardening.
 - The user selected **tests-after using existing infrastructure**.
 - Scope is limited to runtime ownership cleanup, init/upgrade semantics, diagnostics, and duplicate-runtime removal. Memory consolidation, repo/toolchain merge, and unrelated CLI polish remain out of scope.
 
 ### Metis Review (gaps addressed)
+
 - Freeze this phase to **project-local migration only**; do not modify global config under `~/.config/opencode`.
 - Treat `.opencode/oh-my-openagent.jsonc` as a **template-owned canonical bridge file**. In this phase, its schema remains the current valid empty object (`{}`) unless OMO explicitly requires runtime config keys later.
 - Do **not** rely on rewriting preserved directories (`command/`, `skill/`, `tool/`) during upgrade. Compatibility must live in OMO runtime behavior and OCK diagnostics, not in optimistic preserve-dir rewrites.
 - Add deterministic coverage for versioned plugin entries, dual-basename coexistence, and preserved legacy-authored content.
 
 ### Oracle Review (defaults frozen)
+
 - Keep migration **project-only**.
 - Cover **CLI + distributed `/status`** in the diagnostics contract.
 - Handle `skill_mcp` as an **OMO-owned compatibility cutover**, not two live runtime contracts.
 - Do **not** port `skill_mcp_status` or `skill_mcp_disconnect` into OMO; treat them as deprecated / unsupported and surface that via diagnostics.
 
 ## Discovery
+
 - `/work/ock-omo-system/MVP.md:81-107` and `/work/ock-omo-system/MVP.md:229-239` already freeze the ownership matrix and the bridge-placement rule: OCK owns init/upgrade/distribution, OMO owns runtime semantics, and bridge-critical behavior must live in upgradeable locations rather than skipped/preserved authoring directories.
 - OCK already scaffolds the canonical bridge file and plugin registration, but the implementation is incomplete for migration safety: `/work/ock-omo-system/opencodekit-template/src/commands/init/runtime.ts:14-72` only canonicalizes exact `oh-my-opencode` entries, `/work/ock-omo-system/opencodekit-template/src/commands/upgrade/bridge.ts:5-58` mirrors the same limitation, while `/work/ock-omo-system/oh-my-openagent/src/shared/plugin-entry-migrator.ts:3-18` already handles versioned legacy entries like `oh-my-opencode@latest`.
 - The canonical bridge file exists but is currently only a template-owned placeholder: `/work/ock-omo-system/opencodekit-template/.opencode/oh-my-openagent.jsonc:1-2`. That means this phase must treat **file existence + overwriteability** as the contract, not invent unsupported config keys.
@@ -43,10 +50,13 @@
 - OCK `status` / `doctor` are currently buried inside an oversized mixed-responsibility file, `/work/ock-omo-system/opencodekit-template/src/commands/menu.ts:105-549`, and still emit stale Bun-oriented dependency advice (`bun install`) even though init/upgrade installs embedded dependencies with npm in `/work/ock-omo-system/opencodekit-template/src/commands/init/runtime.ts:216-230`.
 
 ## Work Objectives
+
 ### Core Objective
+
 Make the unified MVP operationally true: OCK continues to author and distribute project content, but OMO becomes the only runtime owner for session browsing, skill-MCP execution, and bridge-critical runtime behavior.
 
 ### Deliverables
+
 - OCK init/upgrade canonicalization that handles exact and versioned legacy plugin entries while always refreshing the template-owned canonical bridge file.
 - OMO-owned compatibility support for legacy OCK-authored `find_sessions`, `read_session`, and `skill_mcp(skill_name=...)` usage.
 - OCK distributed commands, skills, AGENTS docs, and plugin docs migrated to OMO runtime semantics.
@@ -54,6 +64,7 @@ Make the unified MVP operationally true: OCK continues to author and distribute 
 - OCK duplicate runtime plugins removed from the distributed template once compatibility and migration coverage pass.
 
 ### Definition of Done (verifiable conditions with commands)
+
 - `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build`
 - `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck && bun test && bun run build`
 - Fresh or upgraded OCK-generated projects register `oh-my-openagent` canonically in `.opencode/opencode.json`, including versioned legacy-entry migration.
@@ -63,6 +74,7 @@ Make the unified MVP operationally true: OCK continues to author and distribute 
 - `.opencode/plugin/sessions.ts` and `.opencode/plugin/skill-mcp.ts` are absent from source and built template output, with compatibility now owned by OMO runtime behavior.
 
 ### Must Have
+
 - Project-only migration semantics.
 - Template-owned canonical bridge file refresh.
 - Exact + versioned plugin-entry canonicalization.
@@ -70,11 +82,13 @@ Make the unified MVP operationally true: OCK continues to author and distribute 
 - Deterministic diagnostics and regression tests for canonical, legacy, and mixed states.
 
 ### Bridge File Mutation Policy
+
 - `.opencode/oh-my-openagent.jsonc` is **template-owned**. `ock init`, `ock init --project-only`, and `ock upgrade` always refresh it from the template. User edits are unsupported and may be overwritten.
 - `.opencode/opencode.json` is **user-owned but bridge-mutated in place**. This phase may change only the plugin-array entries needed for canonicalization/deduplication and must preserve all unrelated keys and non-bridge plugin entries byte-for-byte where possible.
 - `.opencode/plugin/sessions.ts` and `.opencode/plugin/skill-mcp.ts` remain template-owned during the bridge window and are removed from the distributed template only in Task 8. If upgraded projects still contain drifted copies after removal, `ock status` / `ock doctor` must warn explicitly rather than silently relying on them.
 
 ### Must NOT Have (guardrails, AI slop patterns, scope boundaries)
+
 - No global-config mutation under `~/.config/opencode`.
 - No memory-consolidation work.
 - No release-hardening / CI-expansion work.
@@ -84,13 +98,17 @@ Make the unified MVP operationally true: OCK continues to author and distribute 
 - No bridge-critical reliance on preserved directories `command/`, `skill/`, or `tool/`.
 
 ## Verification Strategy
+
 > ZERO HUMAN INTERVENTION - all verification is agent-executed.
+
 - Test decision: tests-after + existing repo infrastructure (`vitest` / governance checks in OCK, `bun test` in OMO)
 - QA policy: Every task includes happy-path and failure/edge-path scenarios with exact commands, file assertions, or deterministic warning strings.
 - Evidence: `.sisyphus/evidence/task-{N}-{slug}.{ext}`
 
 ## Execution Strategy
+
 ### Parallel Execution Waves
+
 > Target: 5-8 tasks per wave. <3 per wave (except final) = under-splitting.
 > Extract shared dependencies as Wave-1 tasks for max parallelism.
 
@@ -109,6 +127,7 @@ Wave 3: cleanup and seal
 - Task 8 — remove duplicate OCK runtime plugins and complete cross-repo regression coverage
 
 ### Dependency Matrix (full, all tasks)
+
 | Task | Depends On | Why |
 |---|---|---|
 | 1 | — | Required before adding more behavior to `src/commands/menu.ts`. |
@@ -121,6 +140,7 @@ Wave 3: cleanup and seal
 | 8 | 3, 4, 5, 6, 7 | Duplicate runtime plugins can only be removed after compatibility + diagnostics + migration coverage are complete. |
 
 ### Agent Dispatch Summary (wave → task count → categories)
+
 | Wave | Task Count | Recommended Categories |
 |---|---:|---|
 | Wave 1 | 4 | 3 × `unspecified-high`, 1 × `ultrabrain` |
@@ -128,6 +148,7 @@ Wave 3: cleanup and seal
 | Wave 3 | 1 | 1 × `unspecified-high` |
 
 ## TODOs
+
 > Implementation + Test = ONE task. Never separate.
 > EVERY task MUST have: Agent Profile + Parallelization + QA Scenarios.
 
@@ -158,7 +179,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Extracted command modules remain callable
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands
@@ -203,7 +224,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Versioned legacy plugin entry canonicalizes on upgrade
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands/init-upgrade.test.ts
@@ -249,7 +270,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck && bun test && bun run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Legacy find/read session calls work via OMO runtime
     Tool: Bash
     Steps: cd /work/ock-omo-system/oh-my-openagent && bun test src/tools/session-manager/tools.test.ts
@@ -297,7 +318,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck && bun test && bun run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Legacy skill_name-based skill_mcp calls remain usable through OMO bridge
     Tool: Bash
     Steps: cd /work/ock-omo-system/oh-my-openagent && bun test src/tools/skill-mcp/tools.test.ts
@@ -342,7 +363,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Distributed authored content is free of legacy session tools
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run validate:governance && npm run test
@@ -387,7 +408,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Distributed skill MCP docs use canonical mcp_name-based examples
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run validate:governance && npm run test
@@ -438,7 +459,7 @@ Wave 3: cleanup and seal
   - [ ] `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run lint && npm run test && npm run build` passes
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Dual-basename coexistence is diagnosed deterministically
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run test
@@ -483,7 +504,7 @@ Wave 3: cleanup and seal
   - [ ] Diagnostics still surface preserved legacy-authored drift instead of silent failure after plugin removal
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
-  ```
+  ```text
   Scenario: Duplicate runtime plugins are gone from source and built template output
     Tool: Bash
     Steps: cd /work/ock-omo-system/opencodekit-template && npm run build && test ! -f .opencode/plugin/sessions.ts && test ! -f .opencode/plugin/skill-mcp.ts && test ! -f dist/template/.opencode/plugin/sessions.ts && test ! -f dist/template/.opencode/plugin/skill-mcp.ts
@@ -500,6 +521,7 @@ Wave 3: cleanup and seal
   **Commit**: NO | Message: `chore(bridge): remove duplicate ock runtime plugins` | Files: [`.opencode/plugin/sessions.ts`, `.opencode/plugin/skill-mcp.ts`, `.opencode/plugin/README.md`, build/test files]
 
 ## Final Verification Wave (MANDATORY — after ALL implementation tasks)
+
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
@@ -509,6 +531,7 @@ Wave 3: cleanup and seal
 - [ ] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
+
 - Default execution mode is **no auto-commit**. The user has not authorized commits yet.
 - Executors should prepare atomic commit boundaries that align to Wave 1 foundation, Wave 2 migration/diagnostics, and Wave 3 plugin removal, but only create commits if the user explicitly requests them during execution.
 - If commit authorization is granted later, use prepared commit themes in this order:
@@ -518,6 +541,7 @@ Wave 3: cleanup and seal
   4. `chore(bridge): remove duplicate ock runtime plugins`
 
 ## Success Criteria
+
 - The unified product can be described simply and truthfully: `ock` installs and upgrades the project, OMO owns runtime behavior, and no duplicate OCK runtime plugin remains necessary for session browsing or skill-MCP execution.
 - Old projects upgrade predictably without touching global config and without relying on preserved authoring directories to receive bridge-critical fixes.
 - Diagnostics tell the truth about bridge state instead of only counting files.

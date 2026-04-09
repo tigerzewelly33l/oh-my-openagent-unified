@@ -7,14 +7,17 @@
 ## Verification Summary
 
 ### 1. Typecheck
+
 - **OMO**: `bun run typecheck` → PASS
 - **OCK**: `npm run typecheck` → PASS
 
 ### 2. Tests
+
 - **OMO**: `bun test src/plugin-config.test.ts` → 20 pass, 0 fail
 - **OCK**: `npm run test` → 5 test files, 23 tests pass
 
 ### 3. Build
+
 - **OMO**: `bun run build` → PASS (index.js 6.51 MB, cli 3.94 MB, schema generated)
 - **OCK**: `npm run build` → PASS (dist/index.js 201.73 kB)
 
@@ -29,6 +32,7 @@
 ## Changed Files
 
 ### OMO (oh-my-openagent/)
+
 - `bun.lock` (166 lines - dependency update)
 - `package.json` (2 lines - dependency update)
 - `src/cli/run/runner.ts` (15 lines - runtime handoff)
@@ -41,6 +45,7 @@
 **Total**: 8 files changed, +482/-112 lines
 
 ### OCK (opencodekit-template/)
+
 - `.beads/config.yaml` (63 lines - bridge config)
 - `.gitignore` (1 line)
 - `.opencode/opencode.json` (1 line)

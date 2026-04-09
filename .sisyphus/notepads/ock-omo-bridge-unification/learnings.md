@@ -1,4 +1,4 @@
-2026-04-09
+# 2026-04-09
 - The planned OMO session bridge work was partially pre-landed before this session: `createSessionManagerTools()` already exposed `find_sessions` and `read_session` aliases, and `session_read` already accepted `focus`. The missing slice work was proof quality, not a second runtime implementation.
 - A dedicated compatibility test is a better fit than reshaping the runtime here: it locks that the legacy aliases still point to OMO-owned tools, that `focus` filtering stays in the OMO code path, and that results remain OMO-native text instead of reviving the old OCK JSON envelope contract.
 - For the session-manager smoke coverage, environment isolation is enough; broad module mocking is not. The stable fix for `tools.test.ts` was to set an isolated `XDG_DATA_HOME` before dynamically importing `./tools`, so storage-path constants bind to a hermetic data root without leaking mocks into `storage.test.ts`, `storage-fallback.test.ts`, or `utils.test.ts`.
