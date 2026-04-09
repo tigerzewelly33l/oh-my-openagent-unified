@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
 
 const CANONICAL_PLUGIN_NAME = "oh-my-openagent";
 const LEGACY_PLUGIN_NAME = "oh-my-opencode";
@@ -9,6 +10,10 @@ const LEGACY_CONFIG_BASENAME = "oh-my-opencode";
 const LEGACY_SESSION_PATTERN = /\b(find_sessions|read_session)\b/;
 const LEGACY_SKILL_MCP_PATTERN = /skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/;
 const DEPRECATED_SKILL_MCP_SURFACE_PATTERN = /skill_mcp_status|skill_mcp_disconnect/;
+
+const OpencodeConfigSchema = z.object({
+	plugin: z.array(z.string()).optional(),
+});
 
 export type BridgeHealthLevel = "OK" | "WARN" | "ERROR";
 
@@ -35,16 +40,17 @@ function readPluginEntries(opencodeDir: string): string[] {
 		return [];
 	}
 
-	try {
-		const parsed = JSON.parse(readFileSync(configPath, "utf-8")) as {
-			plugin?: unknown;
-		};
-		return Array.isArray(parsed.plugin)
-			? parsed.plugin.filter((value): value is string => typeof value === "string")
-			: [];
-	} catch {
+	const rawConfig = readFileSync(configPath, "utf-8").trim();
+	if (rawConfig.length === 0) {
 		return [];
 	}
+
+	const parsed = OpencodeConfigSchema.safeParse(JSON.parse(rawConfig));
+	if (!parsed.success) {
+		throw new Error(`Invalid .opencode/opencode.json plugin configuration at ${configPath}`);
+	}
+
+	return parsed.data.plugin ?? [];
 }
 
 function detectConfigBasenameState(opencodeDir: string): {
@@ -71,7 +77,17 @@ function collectMarkdownFilesRecursive(dir: string): string[] {
 	const results: string[] = [];
 	for (const entry of readdirSync(dir).sort()) {
 		const fullPath = join(dir, entry);
-		const stats = statSync(fullPath);
+		let stats: ReturnType<typeof lstatSync>;
+		try {
+			stats = lstatSync(fullPath);
+		} catch {
+			continue;
+		}
+
+		if (stats.isSymbolicLink()) {
+			continue;
+		}
+
 		if (stats.isDirectory()) {
 			results.push(...collectMarkdownFilesRecursive(fullPath));
 			continue;

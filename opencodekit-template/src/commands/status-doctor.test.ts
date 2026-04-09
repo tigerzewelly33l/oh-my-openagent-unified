@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -24,9 +24,12 @@ import { statusCommand } from "./status.js";
 
 const ORIGINAL_ARGV = [...process.argv];
 const ORIGINAL_CWD = process.cwd();
+const tempProjects: string[] = [];
 
 function createTempProject(prefix: string) {
-	return mkdtempSync(join(tmpdir(), prefix));
+	const projectDir = mkdtempSync(join(tmpdir(), prefix));
+	tempProjects.push(projectDir);
+	return projectDir;
 }
 
 function createOpencodeProject(rootDir: string, options: { installDependencies?: boolean } = {}) {
@@ -57,6 +60,12 @@ afterEach(() => {
 	promptMocks.outro.mockReset();
 	promptMocks.warn.mockReset();
 	promptMocks.info.mockReset();
+	while (tempProjects.length > 0) {
+		const projectDir = tempProjects.pop();
+		if (projectDir) {
+			rmSync(projectDir, { recursive: true, force: true });
+		}
+	}
 });
 
 describe("statusCommand", () => {
