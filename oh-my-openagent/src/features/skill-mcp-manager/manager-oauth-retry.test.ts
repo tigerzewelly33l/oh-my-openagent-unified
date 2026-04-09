@@ -5,6 +5,10 @@ import type { SkillMcpClientInfo, SkillMcpServerContext } from "./types"
 
 const { SkillMcpManager } = await import("./manager")
 
+function spyOnGetOrCreateClientWithRetry(manager: InstanceType<typeof SkillMcpManager>) {
+  return spyOn(manager, "getOrCreateClientWithRetryForTest")
+}
+
 function createInfo(): SkillMcpClientInfo {
   return {
     serverName: "oauth-server",
@@ -39,7 +43,7 @@ describe("SkillMcpManager post-request OAuth retry", () => {
         refresh,
       }),
     })
-    const getOrCreateSpy = spyOn(manager as any, "getOrCreateClientWithRetry")
+    const getOrCreateSpy = spyOnGetOrCreateClientWithRetry(manager)
     const callTool = mock(async () => {
       if (callTool.mock.calls.length === 1) {
         throw new Error("401 Unauthorized")
@@ -68,7 +72,7 @@ describe("SkillMcpManager post-request OAuth retry", () => {
         refresh,
       }),
     })
-    const getOrCreateSpy = spyOn(manager as any, "getOrCreateClientWithRetry")
+    const getOrCreateSpy = spyOnGetOrCreateClientWithRetry(manager)
     const callTool = mock(async () => {
       if (callTool.mock.calls.length === 1) {
         throw new Error("403 Forbidden")
@@ -99,7 +103,7 @@ describe("SkillMcpManager post-request OAuth retry", () => {
         refresh,
       }),
     })
-    const getOrCreateSpy = spyOn(manager as any, "getOrCreateClientWithRetry")
+    const getOrCreateSpy = spyOnGetOrCreateClientWithRetry(manager)
     const callTool = mock(async () => {
       throw new Error("401 Unauthorized")
     })
@@ -121,7 +125,7 @@ describe("SkillMcpManager post-request OAuth retry", () => {
         refresh,
       }),
     })
-    const getOrCreateSpy = spyOn(manager as any, "getOrCreateClientWithRetry")
+    const getOrCreateSpy = spyOnGetOrCreateClientWithRetry(manager)
     const callTool = mock(async () => {
       throw new Error("401 Unauthorized")
     })

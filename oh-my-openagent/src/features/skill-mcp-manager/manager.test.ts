@@ -61,14 +61,19 @@ async function importFreshManagerModule(): Promise<typeof import("./manager")> {
     },
   }))
 
-  const freshConnection = await import(`./connection?manager-connection=${Date.now()}-${Math.random()}`)
-  mock.module("./connection", () => ({
-    getOrCreateClient: freshConnection.getOrCreateClient,
-    getOrCreateClientWithRetryImpl: freshConnection.getOrCreateClientWithRetryImpl,
-  }))
+  const module = await (async () => {
+    try {
+      const freshConnection = await import(`./connection?manager-connection=${Date.now()}-${Math.random()}`)
+      mock.module("./connection", () => ({
+        getOrCreateClient: freshConnection.getOrCreateClient,
+        getOrCreateClientWithRetryImpl: freshConnection.getOrCreateClientWithRetryImpl,
+      }))
 
-  const module = await import(`./manager?test=${Date.now()}-${Math.random()}`)
-  mock.restore()
+      return await import(`./manager?test=${Date.now()}-${Math.random()}`)
+    } finally {
+      mock.restore()
+    }
+  })()
 
   const realClientModule = await import("@modelcontextprotocol/sdk/client/index.js")
   const realHttpTransportModule = await import("@modelcontextprotocol/sdk/client/streamableHttp.js")

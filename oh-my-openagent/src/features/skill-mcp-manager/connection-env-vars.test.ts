@@ -62,8 +62,13 @@ async function importFreshConnectionModule() {
     StreamableHTTPClientTransport: MockStreamableHTTPClientTransport,
   }))
 
-  const module = await import(`./connection?env-vars-test=${Date.now()}-${Math.random()}`)
-  mock.restore()
+  const module = await (async () => {
+    try {
+      return await import(`./connection?env-vars-test=${Date.now()}-${Math.random()}`)
+    } finally {
+      mock.restore()
+    }
+  })()
   const realClientModule = await import("@modelcontextprotocol/sdk/client/index.js")
   const realStdioTransportModule = await import("@modelcontextprotocol/sdk/client/stdio.js")
   const realHttpTransportModule = await import("@modelcontextprotocol/sdk/client/streamableHttp.js")
