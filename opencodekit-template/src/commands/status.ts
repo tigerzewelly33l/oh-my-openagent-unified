@@ -4,7 +4,7 @@ import * as p from "@clack/prompts";
 import { parse } from "jsonc-parser";
 import color from "picocolors";
 import { z } from "zod";
-import { getBridgeHealthReport } from "./bridge-diagnostics.js";
+import { getBridgeHealthReport } from "../utils/bridge-diagnostics.js";
 import { requireOpencodePath, showWarning } from "../utils/errors.js";
 
 const StatusConfigSchema = z.object({
@@ -64,7 +64,13 @@ export async function statusCommand() {
 	let mcpCount = 0;
 	if (existsSync(configPath)) {
 		try {
-			const config = StatusConfigSchema.parse(parse(readFileSync(configPath, "utf-8")))
+			const configContent = readFileSync(configPath, "utf-8");
+			const parseErrors: NonNullable<Parameters<typeof parse>[1]> = [];
+			const parsedConfig = parse(configContent, parseErrors);
+			if (parseErrors.length > 0) {
+				throw new Error(`Invalid JSONC in ${configPath}`);
+			}
+			const config = StatusConfigSchema.parse(parsedConfig);
 			if (config.mcp) {
 				mcpCount = Object.keys(config.mcp).length;
 			}
@@ -111,7 +117,9 @@ export async function statusCommand() {
 	}
 
 	if (!existsSync(join(opencodeDir, "node_modules"))) {
-		showWarning("Dependencies not installed", "cd .opencode && npm install");
+		if (!quiet) {
+			showWarning("Dependencies not installed", "cd .opencode && npm install");
+		}
 	}
 
 	if (!quiet) {

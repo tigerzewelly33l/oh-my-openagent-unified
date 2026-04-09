@@ -4,7 +4,7 @@ import * as p from "@clack/prompts";
 import { parse } from "jsonc-parser";
 import color from "picocolors";
 import { z } from "zod";
-import { getBridgeHealthReport } from "./bridge-diagnostics.js";
+import { getBridgeHealthReport } from "../utils/bridge-diagnostics.js";
 
 export interface CheckResult {
 	name: string;
@@ -107,7 +107,12 @@ export async function doctorCommand() {
 
 		try {
 			const configContent = readFileSync(configPath, "utf-8");
-			const config = DoctorConfigSchema.parse(parse(configContent));
+			const parseErrors: NonNullable<Parameters<typeof parse>[1]> = [];
+			const parsedConfig = parse(configContent, parseErrors);
+			if (parseErrors.length > 0) {
+				throw new Error(`Invalid JSONC in ${configPath}`);
+			}
+			const config = DoctorConfigSchema.parse(parsedConfig);
 
 			configChecks.push({
 				name: "$schema reference",
