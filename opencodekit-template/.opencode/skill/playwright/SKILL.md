@@ -260,24 +260,24 @@ Use MCP for complex exploratory workflows or when you need persistent browser st
 ```typescript
 // Navigate
 skill_mcp(
-  (skill_name = "playwright"),
+  (mcp_name = "playwright"),
   (tool_name = "browser_navigate"),
   (arguments = '{"url": "https://example.com"}'),
 );
 
 // Get element refs
-skill_mcp((skill_name = "playwright"), (tool_name = "browser_snapshot"));
+skill_mcp((mcp_name = "playwright"), (tool_name = "browser_snapshot"));
 
 // Interact
 skill_mcp(
-  (skill_name = "playwright"),
+  (mcp_name = "playwright"),
   (tool_name = "browser_click"),
   (arguments = '{"element": "Submit", "ref": "e12"}'),
 );
 
 // Screenshot
 skill_mcp(
-  (skill_name = "playwright"),
+  (mcp_name = "playwright"),
   (tool_name = "browser_take_screenshot"),
   (arguments = '{"filename": "/tmp/result.png"}'),
 );

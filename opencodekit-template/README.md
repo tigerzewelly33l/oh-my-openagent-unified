@@ -33,6 +33,10 @@ Use these inside OpenCode:
 ## Available Slash Commands (Template)
 
 - `/create`
+- `/compound`
+- `/init-context`
+- `/init-user`
+- `/lfg`
 - `/start`
 - `/ship`
 - `/plan`
@@ -45,6 +49,7 @@ Use these inside OpenCode:
 - `/verify`
 - `/design`
 - `/ui-review`
+- `/ui-slop-check`
 - `/init`
 
 ## CLI Command Surface (`ock`)

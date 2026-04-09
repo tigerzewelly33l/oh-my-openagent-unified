@@ -41,10 +41,10 @@ After loading this skill:
 
 ```
 # List available tabs (enabled ones)
-skill_mcp(skill_name="playwriter", tool_name="listTabs")
+skill_mcp(mcp_name="playwriter", tool_name="listTabs")
 
 # Execute Playwright code on a tab
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "tab-id-here", "code": "await page.goto(\"https://example.com\")"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "tab-id-here", "code": "await page.goto(\"https://example.com\")"}')
 ```
 
 ## Available Tools
@@ -96,20 +96,20 @@ const links = await page.evaluate(() =>
 ### Navigate and Screenshot
 
 ```
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.goto(\"https://example.com\"); await page.screenshot({ path: \"/tmp/example.png\" })"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.goto(\"https://example.com\"); await page.screenshot({ path: \"/tmp/example.png\" })"}')
 ```
 
 ### Fill a Form
 
 ```
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.fill(\"#name\", \"John Doe\"); await page.fill(\"#email\", \"john@example.com\"); await page.click(\"button[type=submit]\")"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.fill(\"#name\", \"John Doe\"); await page.fill(\"#email\", \"john@example.com\"); await page.click(\"button[type=submit]\")"}')
 ```
 
 ### Login Flow (Using Your Saved Sessions)
 
 ```
 # If you're already logged in via browser, just navigate
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.goto(\"https://github.com/settings/profile\")"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.goto(\"https://github.com/settings/profile\")"}')
 
 # Your cookies/session already work - no login needed!
 ```
@@ -117,13 +117,13 @@ skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "ab
 ### Scrape Data
 
 ```
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "const items = await page.$$eval(\".product\", els => els.map(e => ({ name: e.querySelector(\"h2\").textContent, price: e.querySelector(\".price\").textContent }))); return items"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "const items = await page.$$eval(\".product\", els => els.map(e => ({ name: e.querySelector(\"h2\").textContent, price: e.querySelector(\".price\").textContent }))); return items"}')
 ```
 
 ### Test Responsive
 
 ```
-skill_mcp(skill_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.setViewportSize({ width: 375, height: 667 }); await page.screenshot({ path: \"/tmp/mobile.png\" })"}')
+skill_mcp(mcp_name="playwriter", tool_name="execute", arguments='{"tabId": "abc123", "code": "await page.setViewportSize({ width: 375, height: 667 }); await page.screenshot({ path: \"/tmp/mobile.png\" })"}')
 ```
 
 ## Bypassing Automation Detection

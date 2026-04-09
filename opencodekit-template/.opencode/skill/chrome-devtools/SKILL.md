@@ -42,19 +42,19 @@ dependencies: []
 
 ```
 # Get page structure with element UIDs
-skill_mcp(skill_name="chrome-devtools", tool_name="take_snapshot")
+skill_mcp(mcp_name="chrome-devtools", tool_name="take_snapshot")
 
 # Navigate to URL
-skill_mcp(skill_name="chrome-devtools", tool_name="navigate_page", arguments='{"type": "url", "url": "https://example.com"}')
+skill_mcp(mcp_name="chrome-devtools", tool_name="navigate_page", arguments='{"type": "url", "url": "https://example.com"}')
 
 # Click element (use UID from snapshot)
-skill_mcp(skill_name="chrome-devtools", tool_name="click", arguments='{"uid": "e123"}')
+skill_mcp(mcp_name="chrome-devtools", tool_name="click", arguments='{"uid": "e123"}')
 
 # Fill input field
-skill_mcp(skill_name="chrome-devtools", tool_name="fill", arguments='{"uid": "e456", "value": "hello"}')
+skill_mcp(mcp_name="chrome-devtools", tool_name="fill", arguments='{"uid": "e456", "value": "hello"}')
 
 # Take screenshot
-skill_mcp(skill_name="chrome-devtools", tool_name="take_screenshot")
+skill_mcp(mcp_name="chrome-devtools", tool_name="take_screenshot")
 ```
 
 ## Tips

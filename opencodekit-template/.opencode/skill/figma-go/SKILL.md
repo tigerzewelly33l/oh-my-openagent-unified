@@ -40,7 +40,7 @@ dependencies: []
 ## Quick Start
 
 ```bash
-skill_mcp(skill_name="figma-go", tool_name="get_metadata", arguments='{}')
+skill_mcp(mcp_name="figma-mcp-go", tool_name="get_metadata", arguments='{}')
 ```
 
 ## Common Tools
@@ -52,7 +52,7 @@ skill_mcp(skill_name="figma-go", tool_name="get_metadata", arguments='{}')
 ## Example: Read a Frame
 
 ```bash
-skill_mcp(skill_name="figma-go", tool_name="get_node", arguments='{"node_id":"1234:5678"}')
+skill_mcp(mcp_name="figma-mcp-go", tool_name="get_node", arguments='{"node_id":"1234:5678"}')
 ```
 
 ## Notes

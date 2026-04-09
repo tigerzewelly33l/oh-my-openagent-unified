@@ -389,11 +389,11 @@ memory-admin({ operation: "curate-now" })
 
 ```bash
 # Search sessions by keyword
-find_sessions({ query: "auth", limit: 5 })
+session_search({ query: "auth", limit: 5 })
 
 # Read session messages
-read_session({ session_id: "abc123" })
-read_session({ session_id: "abc123", focus: "auth" })
+session_read({ session_id: "abc123" })
+session_read({ session_id: "abc123", focus: "auth" })
 ```
 
 ### Directory Structure

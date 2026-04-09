@@ -19,12 +19,15 @@ node dist/index.js --help
 The current command surface from `src/index.ts`:
 
 - `ock init`
+- `ock activate [key]`
+- `ock license [action]`
 - `ock agent [action]`
 - `ock command [action]`
 - `ock doctor`
 - `ock status`
 - `ock config [action]`
 - `ock upgrade`
+- `ock patch [action]`
 - `ock completion [shell]`
 - `ock tui`
 
@@ -45,6 +48,14 @@ Options:
 - `--backup`
 - `--prune`
 - `--prune-all`
+
+### `ock activate [key]`
+
+Activate a paid license key for the CLI.
+
+### `ock license [action]`
+
+Manage license state, including status and deactivation.
 
 ### `ock agent [action]`
 
@@ -91,6 +102,10 @@ Options:
 - `--prune`
 - `--prune-all`
 
+### `ock patch [action]`
+
+Manage template patch files for preserving user changes across upgrades.
+
 ### `ock completion [shell]`
 
 Generate shell completion scripts for `bash`, `zsh`, or `fish`.
@@ -120,6 +135,6 @@ npm run compile:binary
 
 ## Notes
 
-- This CLI targets Bun (`engines.bun >= 1.3.2`).
+- This CLI targets Node.js (`engines.node >= 20.19.0`).
 - Command behavior is implemented in `src/commands/`.
 - Slash command content (inside OpenCode) lives in `.opencode/command/` and is separate from `ock` CLI commands.

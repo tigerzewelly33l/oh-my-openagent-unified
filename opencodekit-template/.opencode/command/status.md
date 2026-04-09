@@ -6,7 +6,7 @@ agent: build
 
 # Status: $ARGUMENTS
 
-Quick project status dashboard. Runs read-only commands and reports state.
+Quick project status dashboard. Runs read-only commands and reports state, including bridge health.
 
 > **No arguments required.** Flags are optional filters.
 
@@ -44,7 +44,8 @@ skill({ name: "beads" });
 | --------------- | --------------------- |
 | `br`            | Task status and stats |
 | `git`           | Git state and history |
-| `find_sessions` | Recent sessions       |
+| `session_search` | Recent sessions      |
+| `session_read`  | Inspect a specific session when needed |
 
 ## Phase 1: Gather State (Parallel)
 
@@ -63,7 +64,7 @@ git log --oneline -5
 ```
 
 ```typescript
-find_sessions({ query: "<project-name or recent-bead-keywords>", limit: 5 });
+session_search({ query: "<project-name or recent-bead-keywords>", limit: 5 });
 ```
 
 ---
@@ -86,8 +87,12 @@ GIT
   Changes: [from git status, or "clean"]
   Recent:  [from git log]
 
+BRIDGE
+  Health: [OK|WARN|ERROR]
+  Notes:  [truthful summary of canonical plugin registration, dual basenames, or preserved legacy-authored drift]
+
 SESSIONS TODAY
-  [from find_sessions]
+  [from session_search]
 ```
 
 ---

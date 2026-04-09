@@ -10,7 +10,7 @@ This directory contains project-specific OpenCode configuration: agents, command
 ├── opencode.json            # OpenCode runtime configuration
 ├── dcp.jsonc                # Dynamic context pruning settings
 ├── agent/                   # Agent definitions (9)
-├── command/                 # Slash commands (14)
+├── command/                 # Slash commands (19)
 ├── skill/                   # Skill library used by agents/commands
 ├── tool/                    # Custom tools (memory, swarm, research, etc.)
 ├── plugin/                  # OpenCode plugins and plugin-local SDK code
@@ -53,11 +53,10 @@ Tools in `.opencode/tool/` are loaded by OpenCode and available to agents.
 Current plugin source files in `.opencode/plugin/`:
 
 - `memory.ts` - memory DB maintenance hooks + toast notifications
-- `sessions.ts` - session browsing/search/summarization tools
-- `compaction.ts` - compaction-time context injection and recovery protocol
-- `swarm-enforcer.ts` - `/create` -> `/start` -> `/ship` workflow enforcement
-- `skill-mcp.ts` - bridge for skill-scoped MCP servers/tools
 - `copilot-auth.ts` - GitHub Copilot auth/provider integration
+- `stitch.ts` - Google Stitch UI generation integration
+
+Session browsing/search and skill-MCP execution are now owned by the OMO runtime rather than duplicate OCK template plugins. During the bridge window, preserved project content that still references the removed OCK runtime surfaces should be diagnosed via `ock status` / `ock doctor` instead of silently continuing to rely on template-local plugin files.
 
 See `.opencode/plugin/README.md` for plugin details.
 

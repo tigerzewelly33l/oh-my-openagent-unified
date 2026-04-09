@@ -69,8 +69,8 @@ Do not sweep active material needed for immediate edits.
 1. Load task + essential policy docs only
 2. Run `/dcp context`
 3. Rehydrate prior state only if needed:
-   - `find_sessions({ query })`
-   - `read_session({ session_id, focus })`
+   - `session_search({ query, limit })`
+   - `session_read({ session_id, focus })`
    - `memory-search({ query })` / `memory-read({ file })`
 4. Verify git position before edits
 
@@ -333,8 +333,8 @@ If compaction was heavy, recover nuance using:
 
 - `memory-search({ query, limit: 3 })`
 - `memory-read({ file })`
-- `find_sessions({ query, limit })`
-- `read_session({ session_id, focus })`
+- `session_search({ query, limit })`
+- `session_read({ session_id, focus })`
 
 Why: restores rationale/constraints often missing from short summaries.
 
@@ -347,7 +347,7 @@ Do not resume edits until active targets are re-read, required skills are reload
 Use in priority order:
 
 1. Memory artifacts (`memory-search`, `memory-read`, observations)
-2. Session history (`find_sessions`, `read_session`)
+2. Session history (`session_search`, `session_read`)
 3. Task tracker state (`br show <id>`)
 4. Git evidence (`git diff`, `git log`, test output)
 

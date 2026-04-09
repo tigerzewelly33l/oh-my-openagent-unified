@@ -61,13 +61,13 @@ MQDH v6.2.1+ includes an **AI Tools settings tab** with:
 After setting up the environment variable and loading this skill:
 
 ```
-skill_mcp(skill_name="mqdh", list_tools=true)
+skill_mcp(mcp_name="mqdh", list_tools=true)
 ```
 
 Then invoke tools:
 
 ```
-skill_mcp(skill_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking setup"}')
+skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking setup"}')
 ```
 
 ## Available Tools
@@ -83,7 +83,7 @@ Search and retrieve Meta Horizon OS documentation.
 **Example:**
 
 ```
-skill_mcp(skill_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "passthrough API Unity"}')
+skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "passthrough API Unity"}')
 ```
 
 ### get_adb_path
@@ -93,7 +93,7 @@ Get the path to the bundled ADB executable.
 **Example:**
 
 ```
-skill_mcp(skill_name="mqdh", tool_name="get_adb_path", arguments='{}')
+skill_mcp(mcp_name="mqdh", tool_name="get_adb_path", arguments='{}')
 ```
 
 ### device_list
@@ -103,7 +103,7 @@ List connected Quest devices.
 **Example:**
 
 ```
-skill_mcp(skill_name="mqdh", tool_name="device_list", arguments='{}')
+skill_mcp(mcp_name="mqdh", tool_name="device_list", arguments='{}')
 ```
 
 ### install_apk
@@ -118,7 +118,7 @@ Install an APK to a connected Quest device.
 **Example:**
 
 ```
-skill_mcp(skill_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/path/to/app.apk"}')
+skill_mcp(mcp_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/path/to/app.apk"}')
 ```
 
 ## Use Cases
@@ -134,20 +134,20 @@ skill_mcp(skill_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/
 
 ```
 # Search for hand tracking documentation
-skill_mcp(skill_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking gesture detection"}')
+skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking gesture detection"}')
 
 # Search for passthrough setup
-skill_mcp(skill_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "mixed reality passthrough Unity"}')
+skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "mixed reality passthrough Unity"}')
 ```
 
 ### 2. Device Operations
 
 ```
 # List connected devices
-skill_mcp(skill_name="mqdh", tool_name="device_list", arguments='{}')
+skill_mcp(mcp_name="mqdh", tool_name="device_list", arguments='{}')
 
 # Install a build
-skill_mcp(skill_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/builds/myapp.apk", "device_id": "1234567890"}')
+skill_mcp(mcp_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/builds/myapp.apk", "device_id": "1234567890"}')
 ```
 
 ## Transport

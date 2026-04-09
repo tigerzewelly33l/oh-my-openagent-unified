@@ -88,7 +88,7 @@ Most tools require a `cloudId`. Get it from your site URL or use the utility:
 ```typescript
 // Get accessible resources and cloudId
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "getAccessibleAtlassianResources"),
   (arguments = "{}"),
 );
@@ -101,28 +101,28 @@ Or use your site URL directly as cloudId (e.g., `"ibet.atlassian.net"`).
 ```typescript
 // Universal search (recommended for discovery)
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "search"),
   (arguments = '{"query": "authentication bug"}'),
 );
 
 // Get issue details
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "getJiraIssue"),
   (arguments = '{"cloudId": "your-site.atlassian.net", "issueIdOrKey": "PROJ-123"}'),
 );
 
 // Search with JQL
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "searchJiraIssuesUsingJql"),
   (arguments = '{"cloudId": "your-site.atlassian.net", "jql": "project = PROJ AND status = Open"}'),
 );
 
 // Create issue
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "createJiraIssue"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "projectKey": "PROJ", "issueTypeName": "Bug", "summary": "Login fails on mobile"}'),
@@ -130,7 +130,7 @@ skill_mcp(
 
 // Transition issue status
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "transitionJiraIssue"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "issueIdOrKey": "PROJ-123", "transition": {"id": "21"}}'),
@@ -138,14 +138,14 @@ skill_mcp(
 
 // Get Confluence page
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "getConfluencePage"),
   (arguments = '{"cloudId": "your-site.atlassian.net", "pageId": "123456789"}'),
 );
 
 // Search Confluence with CQL
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "searchConfluenceUsingCql"),
   (arguments = '{"cloudId": "your-site.atlassian.net", "cql": "title ~ \"Onboarding\""}'),
 );
@@ -157,7 +157,7 @@ skill_mcp(
 
 ```typescript
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "searchJiraIssuesUsingJql"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "jql": "assignee = currentUser() AND updated >= -1d"}'),
@@ -168,7 +168,7 @@ skill_mcp(
 
 ```typescript
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "searchJiraIssuesUsingJql"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "jql": "type = Bug AND priority in (High, Critical) AND status != Done"}'),
@@ -179,7 +179,7 @@ skill_mcp(
 
 ```typescript
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "searchJiraIssuesUsingJql"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "jql": "project = PROJ AND sprint in openSprints()"}'),
@@ -191,14 +191,14 @@ skill_mcp(
 ```typescript
 // Best for finding content when you don't know exact location
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "search"),
   (arguments = '{"query": "authentication implementation"}'),
 );
 
 // Then fetch details using ARI from results
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "fetch"),
   (arguments = '{"id": "ari:cloud:jira:cloudId:issue/10107"}'),
 );
@@ -248,7 +248,7 @@ For Confluence pages, you can specify content format:
 
 ```typescript
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "getConfluencePage"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "pageId": "123456", "contentFormat": "markdown"}'),
@@ -262,14 +262,14 @@ To change issue status, first get available transitions:
 ```typescript
 // 1. Get available transitions
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "getTransitionsForJiraIssue"),
   (arguments = '{"cloudId": "your-site.atlassian.net", "issueIdOrKey": "PROJ-123"}'),
 );
 
 // 2. Use transition ID to change status
 skill_mcp(
-  (skill_name = "jira"),
+  (mcp_name = "jira"),
   (tool_name = "transitionJiraIssue"),
   (arguments =
     '{"cloudId": "your-site.atlassian.net", "issueIdOrKey": "PROJ-123", "transition": {"id": "31"}}'),
