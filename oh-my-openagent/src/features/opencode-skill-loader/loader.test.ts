@@ -5,6 +5,7 @@ import { tmpdir } from "os"
 
 const TEST_DIR = join(tmpdir(), "skill-loader-test-" + Date.now())
 const SKILLS_DIR = join(TEST_DIR, ".opencode", "skills")
+const SUITE_ORIGINAL_CWD = process.cwd()
 
 function createTestSkill(name: string, content: string, mcpJson?: object): string {
   const skillDir = join(SKILLS_DIR, name)
@@ -20,9 +21,11 @@ function createTestSkill(name: string, content: string, mcpJson?: object): strin
 describe("skill loader MCP parsing", () => {
   beforeEach(() => {
     mkdirSync(TEST_DIR, { recursive: true })
+    process.chdir(SUITE_ORIGINAL_CWD)
   })
 
   afterEach(() => {
+    process.chdir(SUITE_ORIGINAL_CWD)
     rmSync(TEST_DIR, { recursive: true, force: true })
   })
 
@@ -442,7 +445,7 @@ claude project body.
       process.chdir(TEST_DIR)
 
       try {
-        const skills = await discoverSkills()
+        const skills = await discoverSkills({ directory: TEST_DIR })
         const duplicates = skills.filter(s => s.name === "duplicate-skill")
 
         // then
@@ -503,7 +506,7 @@ claude project body.
       process.chdir(TEST_DIR)
 
       try {
-        const skills = await discoverSkills()
+        const skills = await discoverSkills({ directory: TEST_DIR })
         const matches = skills.filter(s => s.name === "global-over-project")
 
         expect(matches).toHaveLength(1)
@@ -544,7 +547,7 @@ Skill body.
       process.chdir(TEST_DIR)
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
+        const skills = await discoverSkills({ includeClaudeCodePaths: false, directory: TEST_DIR })
 
         // then
         const names = skills.map(s => s.name)
@@ -581,7 +584,7 @@ Skill body.
       process.chdir(TEST_DIR)
 
       try {
-        const skills = await discoverProjectAgentsSkills()
+        const skills = await discoverProjectAgentsSkills(TEST_DIR)
         const skill = skills.find(s => s.name === "agent-project-skill")
 
         //#then
@@ -692,7 +695,7 @@ Skill body.
       process.chdir(TEST_DIR)
 
       try {
-        const skills = await discoverOpencodeProjectSkills()
+        const skills = await discoverOpencodeProjectSkills(TEST_DIR)
         const skill = skills.find((candidate) => candidate.name === "singular-opencode-skill")
 
         // then
