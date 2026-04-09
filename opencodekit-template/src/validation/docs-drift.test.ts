@@ -25,11 +25,11 @@ function createDocsDriftFixture(): string {
 	mkdirSync(join(root, ".opencode", "plugin"), { recursive: true });
 	mkdirSync(join(root, ".opencode", "agent"), { recursive: true });
 
-	writeFileSync(join(root, "README.md"), "")
-	writeFileSync(join(root, "CLI.md"), "")
-	writeFileSync(join(root, ".opencode", "README.md"), "")
-	writeFileSync(join(root, ".opencode", "AGENTS.md"), "")
-	writeFileSync(join(root, ".opencode", "plugin", "README.md"), "")
+	writeFileSync(join(root, "README.md"), "");
+	writeFileSync(join(root, "CLI.md"), "");
+	writeFileSync(join(root, ".opencode", "README.md"), "");
+	writeFileSync(join(root, ".opencode", "AGENTS.md"), "");
+	writeFileSync(join(root, ".opencode", "plugin", "README.md"), "");
 
 	return root;
 }
