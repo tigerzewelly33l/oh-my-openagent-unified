@@ -1,9 +1,15 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { applyEdits, modify, parse } from "jsonc-parser";
+import { z } from "zod";
 
 export const PLUGIN_NAME = "oh-my-openagent";
 export const LEGACY_PLUGIN_NAME = "oh-my-opencode";
 export const CONFIG_BASENAME = "oh-my-openagent";
+
+const ConfigSchema = z.object({
+	plugin: z.array(z.string()).optional(),
+});
 
 export function toCanonicalPluginEntry(entry: string): string {
 	if (entry === LEGACY_PLUGIN_NAME) {
@@ -25,11 +31,33 @@ export function hasCanonicalPluginEntry(plugins: string[]): boolean {
 }
 
 export function canonicalizeBridgePluginEntries(existingPlugins: string[]): string[] {
-	const canonicalPlugins = existingPlugins
-		.map(toCanonicalPluginEntry)
-		.filter((pluginName, index, values) => values.indexOf(pluginName) === index);
+	const canonicalPlugins: string[] = [];
+	let canonicalBridgeIndex = -1;
 
-	if (!hasCanonicalPluginEntry(canonicalPlugins)) {
+	for (const pluginName of existingPlugins.map(toCanonicalPluginEntry)) {
+		const isBridgeEntry =
+			pluginName === PLUGIN_NAME || pluginName.startsWith(`${PLUGIN_NAME}@`);
+
+		if (isBridgeEntry) {
+			if (canonicalBridgeIndex === -1) {
+				canonicalPlugins.push(pluginName);
+				canonicalBridgeIndex = canonicalPlugins.length - 1;
+				continue;
+			}
+
+			const existingBridgeEntry = canonicalPlugins[canonicalBridgeIndex];
+			if (!existingBridgeEntry.includes("@") && pluginName.includes("@")) {
+				canonicalPlugins[canonicalBridgeIndex] = pluginName;
+			}
+			continue;
+		}
+
+		if (!canonicalPlugins.includes(pluginName)) {
+			canonicalPlugins.push(pluginName);
+		}
+	}
+
+	if (canonicalBridgeIndex === -1) {
 		canonicalPlugins.push(PLUGIN_NAME);
 	}
 
@@ -37,12 +65,13 @@ export function canonicalizeBridgePluginEntries(existingPlugins: string[]): stri
 }
 
 export function ensureCanonicalPluginRegistration(opencodeConfigPath: string): boolean {
-	const config = JSON.parse(readFileSync(opencodeConfigPath, "utf-8")) as {
-		plugin?: unknown;
-	};
-	const existingPlugins = Array.isArray(config.plugin)
-		? config.plugin.filter((value): value is string => typeof value === "string")
-		: [];
+	const originalContent = readFileSync(opencodeConfigPath, "utf-8");
+	const parseErrors: NonNullable<Parameters<typeof parse>[1]> = [];
+	const parsedContent = ConfigSchema.parse(parse(originalContent, parseErrors));
+	if (parseErrors.length > 0) {
+		throw new Error(`Invalid JSONC in ${opencodeConfigPath}`);
+	}
+	const existingPlugins = parsedContent.plugin ?? [];
 	const canonicalPlugins = canonicalizeBridgePluginEntries(existingPlugins);
 
 	if (
@@ -52,8 +81,14 @@ export function ensureCanonicalPluginRegistration(opencodeConfigPath: string): b
 		return false;
 	}
 
-	config.plugin = canonicalPlugins;
-	writeFileSync(opencodeConfigPath, `${JSON.stringify(config, null, 2)}\n`);
+	const edits = modify(
+		originalContent,
+		["plugin"],
+		canonicalPlugins,
+		{ formattingOptions: { insertSpaces: true, tabSize: 2 } },
+	);
+	const updatedContent = applyEdits(originalContent, edits);
+	writeFileSync(opencodeConfigPath, updatedContent.endsWith("\n") ? updatedContent : `${updatedContent}\n`);
 	return true;
 }
 

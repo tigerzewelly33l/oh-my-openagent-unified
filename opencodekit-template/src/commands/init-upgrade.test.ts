@@ -47,10 +47,9 @@ function withPrependedPath(pathEntry: string, run: () => void): void {
 	} finally {
 		if (originalPath === undefined) {
 			delete process.env.PATH;
-			return;
+		} else {
+			process.env.PATH = originalPath;
 		}
-
-		process.env.PATH = originalPath;
 	}
 }
 
@@ -198,7 +197,7 @@ describe("init/upgrade regression helpers", () => {
 		) as { plugin: string[] };
 
 		expect(opencodeConfig.plugin).toContain("oh-my-openagent@latest");
-		expect(opencodeConfig.plugin).toContain("oh-my-openagent@1.0.0");
+		expect(opencodeConfig.plugin).not.toContain("oh-my-openagent@1.0.0");
 		expect(opencodeConfig.plugin).not.toContain("oh-my-opencode");
 	});
 
@@ -213,7 +212,6 @@ describe("init/upgrade regression helpers", () => {
 				"other-plugin",
 			]),
 		).toEqual([
-			"oh-my-openagent",
 			"oh-my-openagent@latest",
 			"other-plugin",
 		]);
@@ -271,11 +269,7 @@ describe("init/upgrade regression helpers", () => {
 			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
 		) as { plugin: string[] };
 
-		expect(opencodeConfig.plugin).toEqual([
-			"oh-my-openagent",
-			"other-plugin",
-			"oh-my-openagent@latest",
-		]);
+		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent@latest", "other-plugin"]);
 	});
 
 	it("project-only init keeps the canonical bridge config local when shared dirs are skipped", async () => {
