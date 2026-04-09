@@ -67,7 +67,7 @@ export function createSessionManagerTools(ctx: PluginInput): Record<string, Tool
       include_todos: tool.schema.boolean().optional().describe("Include todo list if available (default: false)"),
       include_transcript: tool.schema.boolean().optional().describe("Include transcript log if available (default: false)"),
       limit: tool.schema.number().optional().describe("Maximum number of messages to return (default: all)"),
-      focus: tool.schema.string().optional().describe("Legacy compatibility: keyword filter (maps to search)"),
+      focus: tool.schema.string().optional().describe("Legacy compatibility: keyword filter for returned messages"),
     },
     execute: async (args: SessionReadArgs, _context) => {
       try {
