@@ -4,18 +4,18 @@ import { log } from "../../shared/logger"
 
 import { DEFAULT_SKIP_AGENTS, HOOK_NAME } from "./constants"
 import { createTodoContinuationHandler } from "./handler"
+import {
+  registerSessionStateStore,
+  resetTodoContinuationEnforcersForTesting,
+  shutdownSessionStateStore,
+} from "./lifecycle"
 import { createSessionStateStore } from "./session-state"
 import type { TodoContinuationEnforcer, TodoContinuationEnforcerOptions } from "./types"
 
 export type { TodoContinuationEnforcer, TodoContinuationEnforcerOptions } from "./types"
 
-const activeSessionStateStores = new Set<ReturnType<typeof createSessionStateStore>>()
-
 export function _resetTodoContinuationEnforcersForTesting(): void {
-  for (const sessionStateStore of activeSessionStateStores) {
-    sessionStateStore.shutdown()
-  }
-  activeSessionStateStores.clear()
+  resetTodoContinuationEnforcersForTesting()
 }
 
 export function createTodoContinuationEnforcer(
@@ -29,7 +29,7 @@ export function createTodoContinuationEnforcer(
   } = options
 
   const sessionStateStore = createSessionStateStore()
-  activeSessionStateStores.add(sessionStateStore)
+  registerSessionStateStore(sessionStateStore)
 
   const markRecovering = (sessionID: string): void => {
     const state = sessionStateStore.getState(sessionID)
@@ -65,8 +65,7 @@ export function createTodoContinuationEnforcer(
     markRecoveryComplete,
     cancelAllCountdowns,
     dispose: () => {
-      sessionStateStore.shutdown()
-      activeSessionStateStores.delete(sessionStateStore)
+      shutdownSessionStateStore(sessionStateStore)
     },
   }
 }
