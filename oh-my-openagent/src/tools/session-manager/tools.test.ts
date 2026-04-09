@@ -18,7 +18,7 @@ setVersionCache(null)
 
 const { createSessionManagerTools } = await import(`./tools?test=tools-${Date.now()}-${Math.random()}`)
 
-const projectDir = "/Users/yeongyu/local-workspaces/oh-my-opencode"
+const projectDir = mkdtempSync(join(isolatedDataDir, "project-"))
 const mockCtx = { directory: projectDir } as PluginInput
 const mockContext: ToolContext = {
   sessionID: "test-session",

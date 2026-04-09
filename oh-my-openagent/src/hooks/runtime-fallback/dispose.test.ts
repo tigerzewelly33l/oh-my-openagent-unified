@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
 import * as autoRetryModule from "./auto-retry"
 import * as chatMessageHandlerModule from "./chat-message-handler"
@@ -25,8 +25,6 @@ const mockCreateMessageUpdateHandler = mock(() => async () => {})
 const mockCreateChatMessageHandler = mock(() => async () => {})
 
 const { createRuntimeFallbackHook } = await import("./hook")
-
-afterAll(() => {})
 
 function createMockContext(): RuntimeFallbackPluginInput {
   return {
