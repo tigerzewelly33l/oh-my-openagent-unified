@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -77,5 +77,41 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		expect(
 			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-surface"),
 		).toBe(false);
+	});
+
+	it("flags a repeated deprecated surface mention when a later occurrence is undocumented", () => {
+		const root = createDocsDriftFixture();
+		const spacer = "x".repeat(220);
+		writeFileSync(
+			join(root, ".opencode", "plugin", "README.md"),
+			[
+				"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.",
+				spacer,
+				"skill_mcp_status remains available in examples below.",
+			].join("\n"),
+		);
+
+		const result = runDocsDriftCheck(root);
+
+		expect(result.ok).toBe(false);
+		expect(
+			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-surface"),
+		).toBe(true);
+	});
+
+	it("ignores broken symlinks while collecting markdown files", () => {
+		const root = createDocsDriftFixture();
+		const brokenSkillLink = join(root, ".opencode", "skill", "broken-link");
+		symlinkSync(join(root, "missing-target"), brokenSkillLink);
+
+		writeFileSync(
+			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
+			"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.\n",
+		);
+
+		const result = runDocsDriftCheck(root);
+
+		expect(result.ok).toBe(true);
+		expect(result.issues).toHaveLength(0);
 	});
 });
