@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 interface DriftIssue {
@@ -21,6 +21,25 @@ function listFiles(dir: string, suffix: string): string[] {
 	return readdirSync(dir)
 		.filter((name) => name.endsWith(suffix))
 		.sort();
+}
+
+function collectMarkdownFilesRecursive(dir: string): string[] {
+	if (!existsSync(dir)) return [];
+
+	const files: string[] = [];
+	for (const entry of readdirSync(dir).sort()) {
+		const fullPath = join(dir, entry);
+		const stats = statSync(fullPath);
+		if (stats.isDirectory()) {
+			files.push(...collectMarkdownFilesRecursive(fullPath));
+			continue;
+		}
+		if (entry.endsWith(".md")) {
+			files.push(fullPath);
+		}
+	}
+
+	return files;
 }
 
 function getActualSlashCommands(projectRoot: string): string[] {
@@ -152,6 +171,69 @@ function checkPluginReadme(
 	return issues;
 }
 
+function checkLegacySessionToolReferences(projectRoot: string): DriftIssue[] {
+	const issues: DriftIssue[] = [];
+	const targetFiles = [
+		...collectMarkdownFilesRecursive(join(projectRoot, ".opencode", "command")),
+		...collectMarkdownFilesRecursive(join(projectRoot, ".opencode", "skill")),
+		join(projectRoot, ".opencode", "AGENTS.md"),
+	].filter((filePath, index, values) => values.indexOf(filePath) === index && existsSync(filePath));
+
+	for (const filePath of targetFiles) {
+		const content = read(filePath);
+		const legacyMatches = content.match(/\b(find_sessions|read_session)\b/g);
+		if (!legacyMatches || legacyMatches.length === 0) {
+			continue;
+		}
+
+		issues.push({
+			rule: "legacy-session-tool-reference",
+			message: `${filePath} still references legacy session tools (${Array.from(new Set(legacyMatches)).join(", ")})`,
+			fix: "Replace legacy session guidance with session_search/session_read/session_list/session_info as appropriate.",
+		});
+	}
+
+	return issues;
+}
+
+function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
+	const issues: DriftIssue[] = [];
+	const targetFiles = collectMarkdownFilesRecursive(join(projectRoot, ".opencode"));
+
+	for (const filePath of targetFiles) {
+		const content = read(filePath);
+		const legacySkillNameMatches = content.match(/skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/g);
+		if (legacySkillNameMatches && legacySkillNameMatches.length > 0) {
+			issues.push({
+				rule: "legacy-skill-mcp-syntax",
+				message: `${filePath} still contains legacy skill_mcp skill_name syntax`,
+				fix: "Use canonical skill_mcp(mcp_name=...) examples with the actual MCP server name.",
+			});
+		}
+
+		const deprecatedSurfaceMatches = content.match(/skill_mcp_status|skill_mcp_disconnect/g);
+		if (!deprecatedSurfaceMatches || deprecatedSurfaceMatches.length === 0) {
+			continue;
+		}
+
+		const mentionsAreExplicitlyDeprecated = deprecatedSurfaceMatches.every((match) => {
+			const index = content.indexOf(match);
+			const context = content.slice(Math.max(0, index - 120), Math.min(content.length, index + 160)).toLowerCase();
+			return context.includes("deprecated") || context.includes("unsupported");
+		});
+
+		if (!mentionsAreExplicitlyDeprecated) {
+			issues.push({
+				rule: "legacy-skill-mcp-surface",
+				message: `${filePath} still documents skill_mcp_status or skill_mcp_disconnect as live surfaces`,
+				fix: "Remove those examples or mark them explicitly deprecated / unsupported.",
+			});
+		}
+	}
+
+	return issues;
+}
+
 function checkOpencodeReadmeCounts(
 	opencodeReadme: string,
 	agentCount: number,
@@ -231,6 +313,9 @@ export function runDocsDriftCheck(projectRoot = process.cwd()): DriftResult {
 			...checkPluginReadme(read(pluginReadmePath), actualPluginSources),
 		);
 	}
+
+	issues.push(...checkLegacySessionToolReferences(projectRoot));
+	issues.push(...checkLegacySkillMcpDocReferences(projectRoot));
 
 	if (existsSync(opencodeReadmePath)) {
 		issues.push(
