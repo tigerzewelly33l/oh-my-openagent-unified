@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { UpgradeCopyResult } from "./files.js";
 import {
 	CONFIG_BASENAME,
@@ -54,5 +55,8 @@ export function refreshBridgeArtifactsScaffold(_options: {
 		_options.templateOpencode,
 		_options.opencodeDir,
 	);
-	ensureCanonicalPluginRegistration(`${_options.opencodeDir}/opencode.json`);
+	const opencodeConfigPath = `${_options.opencodeDir}/opencode.json`;
+	if (existsSync(opencodeConfigPath)) {
+		ensureCanonicalPluginRegistration(opencodeConfigPath);
+	}
 }
