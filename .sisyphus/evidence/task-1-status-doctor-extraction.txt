@@ -1,0 +1,59 @@
+TASK-1 STATUS/DOCTOR EXTRACTION — Bridge Unification Phase 1
+=============================================================
+
+Date: 2026-04-09
+Bead: bd-l1s (Unified state architecture)
+Task: 1 (Extract status and doctor modules from menu.ts)
+
+VERIFICATION RESULTS
+===================
+
+### Extraction Verification
+
+1. Files Extracted:
+   - src/commands/doctor.ts (new) - doctor command logic
+   - src/commands/status.ts (new) - status command logic
+
+2. menu.ts Refactored:
+   - Removed ~400 lines of inline status/doctor implementation
+   - Now imports and re-exports from extracted modules
+   - Remains focused on interactive menu wiring only
+
+3. Dependency Guidance Normalized:
+   - Changed from "bun install" to "npm install"
+   - Matches current embedded dependency install flow
+   - Affects: doctor.ts line 78, status.ts line 86
+
+### Test Results
+
+Command: cd /work/ock-omo-system/opencodekit-template && npm run test
+Result: PASS (5 test files, 23 tests passed)
+
+### Full Verification
+
+1. Typecheck:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run typecheck
+   Result: PASS
+
+2. Lint:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run lint
+   Result: PASS (0 errors, 4 warnings - unrelated to extraction)
+
+3. Build:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run build
+   Result: PASS (dist/index.js 201.82 kB, template copied to dist/template/.opencode)
+
+CHANGED FILES
+=============
+- src/commands/doctor.ts (NEW - extracted doctor logic)
+- src/commands/status.ts (NEW - extracted status logic)
+- src/commands/menu.ts (MODIFIED - now imports from extracted modules)
+
+ACCEPTANCE CRITERIA STATUS
+===========================
+[✓] statusCommand no longer lives in menu.ts
+[✓] doctorCommand no longer lives in menu.ts
+[✓] menu.ts remains an interactive menu/wiring file only
+[✓] Dependency guidance references npm install, not bun install
+[✓] npm run test passes for command tests
+[✓] npm run typecheck && npm run lint && npm run test && npm run build passes
