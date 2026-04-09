@@ -65,6 +65,20 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		).toBe(true);
 	});
 
+	it("does not flag unrelated frontmatter skill_name metadata", () => {
+		const root = createDocsDriftFixture();
+		writeFileSync(
+			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
+			"---\nskill_name: calendar\n---\nThis is metadata, not a skill_mcp call.\n",
+		);
+
+		const result = runDocsDriftCheck(root);
+
+		expect(
+			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-syntax"),
+		).toBe(false);
+	});
+
 	it("allows deprecated status/disconnect mentions when explicitly marked unsupported", () => {
 		const root = createDocsDriftFixture();
 		writeFileSync(

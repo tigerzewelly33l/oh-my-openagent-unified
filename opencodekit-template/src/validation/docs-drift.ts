@@ -212,8 +212,12 @@ function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
 
 	for (const filePath of targetFiles) {
 		const content = read(filePath);
-		const legacySkillNameMatches = content.match(/skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/g);
-		if (legacySkillNameMatches && legacySkillNameMatches.length > 0) {
+		const legacySkillNameMatches = Array.from(
+			content.matchAll(
+				/skill_mcp\s*\(\s*(?:skill_name\s*=|\{[^)]*\bskill_name\s*:)/g,
+			),
+		);
+		if (legacySkillNameMatches.length > 0) {
 			issues.push({
 				rule: "legacy-skill-mcp-syntax",
 				message: `${filePath} still contains legacy skill_mcp skill_name syntax`,

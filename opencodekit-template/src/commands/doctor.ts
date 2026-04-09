@@ -1,7 +1,9 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as p from "@clack/prompts";
+import { parse } from "jsonc-parser";
 import color from "picocolors";
+import { z } from "zod";
 import { getBridgeHealthReport } from "./bridge-diagnostics.js";
 
 export interface CheckResult {
@@ -40,20 +42,31 @@ const KNOWN_CONFIG_PROPERTIES = new Set([
 	"compaction",
 ]);
 
+const DoctorConfigSchema = z.object({
+	$schema: z.string().optional(),
+	model: z.string().optional(),
+	mcp: z.record(z.string(), z.object({ command: z.string().optional(), url: z.string().optional() })).optional(),
+	agent: z.record(z.string(), z.unknown()).optional(),
+}).catchall(z.unknown());
+
 export async function doctorCommand() {
-	if (process.argv.includes("--quiet")) return;
+	const quiet = process.argv.includes("--quiet");
 
 	const cwd = process.cwd();
 	const opencodeDir = join(cwd, ".opencode");
 	const bridgeHealth = getBridgeHealthReport(opencodeDir);
 
-	p.intro(color.bgBlue(color.white(" Doctor - Health Check ")));
+	if (!quiet) {
+		p.intro(color.bgBlue(color.white(" Doctor - Health Check ")));
+	}
 
 	const checks: CheckResult[] = [];
 	const warnings: CheckResult[] = [];
 
-	console.log();
-	console.log(color.bold("  Structure"));
+	if (!quiet) {
+		console.log();
+		console.log(color.bold("  Structure"));
+	}
 
 	checks.push({
 		name: ".opencode/ exists",
@@ -80,17 +93,21 @@ export async function doctorCommand() {
 		fix: "cd .opencode && npm install",
 	});
 
-	displayChecks(checks.slice(-4));
+	if (!quiet) {
+		displayChecks(checks.slice(-4));
+	}
 
 	if (existsSync(configPath)) {
-		console.log();
-		console.log(color.bold("  Configuration"));
+		if (!quiet) {
+			console.log();
+			console.log(color.bold("  Configuration"));
+		}
 
 		const configChecks: CheckResult[] = [];
 
 		try {
 			const configContent = readFileSync(configPath, "utf-8");
-			const config = JSON.parse(configContent);
+			const config = DoctorConfigSchema.parse(parse(configContent));
 
 			configChecks.push({
 				name: "$schema reference",
@@ -117,10 +134,11 @@ export async function doctorCommand() {
 				warn: true,
 			});
 
-			if (config.mcp) {
-				const mcpServers = Object.keys(config.mcp);
+			const mcpConfig = config.mcp;
+			if (mcpConfig) {
+				const mcpServers = Object.keys(mcpConfig);
 				const invalidMcp = mcpServers.filter((name) => {
-					const server = config.mcp[name];
+					const server = mcpConfig[name];
 					return !server.command && !server.url;
 				});
 
@@ -151,19 +169,25 @@ export async function doctorCommand() {
 			}
 
 			checks.push(...configChecks);
-			displayChecks(configChecks);
+			if (!quiet) {
+				displayChecks(configChecks);
+			}
 		} catch {
 			checks.push({
-				name: "Valid JSON syntax",
+				name: "Valid opencode.json syntax and structure",
 				ok: false,
-				fix: "Fix JSON syntax errors in opencode.json",
+				fix: "Fix opencode.json syntax or schema errors",
 			});
-			displayChecks([checks[checks.length - 1]]);
+			if (!quiet) {
+				displayChecks([checks[checks.length - 1]]);
+			}
 		}
 	}
 
-	console.log();
-	console.log(color.bold("  Agents"));
+	if (!quiet) {
+		console.log();
+		console.log(color.bold("  Agents"));
+	}
 
 	const agentDir = join(opencodeDir, "agent");
 	const agentChecks: CheckResult[] = [];
@@ -205,10 +229,14 @@ export async function doctorCommand() {
 	}
 
 	checks.push(...agentChecks);
-	displayChecks(agentChecks);
+	if (!quiet) {
+		displayChecks(agentChecks);
+	}
 
-	console.log();
-	console.log(color.bold("  Skills"));
+	if (!quiet) {
+		console.log();
+		console.log(color.bold("  Skills"));
+	}
 
 	const skillDir = join(opencodeDir, "skill");
 	const skillChecks: CheckResult[] = [];
@@ -239,7 +267,7 @@ export async function doctorCommand() {
 			});
 		}
 
-		for (const folder of validSkills.slice(0, 5)) {
+		for (const folder of validSkills) {
 			const content = readFileSync(join(skillDir, folder, "SKILL.md"), "utf-8");
 			const hasFrontmatter = content.startsWith("---");
 			const hasName = content.includes("name:");
@@ -263,10 +291,14 @@ export async function doctorCommand() {
 	}
 
 	checks.push(...skillChecks);
-	displayChecks(skillChecks);
+	if (!quiet) {
+		displayChecks(skillChecks);
+	}
 
-	console.log();
-	console.log(color.bold("  Tools"));
+	if (!quiet) {
+		console.log();
+		console.log(color.bold("  Tools"));
+	}
 
 	const toolDir = join(opencodeDir, "tool");
 	const toolChecks: CheckResult[] = [];
@@ -279,7 +311,7 @@ export async function doctorCommand() {
 			ok: true,
 		});
 
-		for (const file of toolFiles.slice(0, 5)) {
+		for (const file of toolFiles) {
 			const content = readFileSync(join(toolDir, file), "utf-8");
 			const hasExport =
 				content.includes("export default") || content.includes("export const");
@@ -301,23 +333,29 @@ export async function doctorCommand() {
 	}
 
 	checks.push(...toolChecks);
-	displayChecks(toolChecks);
+	if (!quiet) {
+		displayChecks(toolChecks);
+	}
 
-	console.log();
-	console.log(color.bold("  Bridge"));
+	if (!quiet) {
+		console.log();
+		console.log(color.bold("  Bridge"));
+	}
 
-	if (bridgeHealth.level === "OK") {
-		console.log(`  ${color.green("✓")} BRIDGE OK: canonical OMO runtime registration detected`);
-	} else {
-		for (const diagnostic of bridgeHealth.diagnostics) {
-			const prefix = diagnostic.level === "ERROR" ? color.red("✗") : color.yellow("!");
-			console.log(`  ${prefix} ${diagnostic.message}`);
-			if (diagnostic.details && diagnostic.details.length > 0) {
-				for (const detail of diagnostic.details.slice(0, 5)) {
-					console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
-				}
-				if (diagnostic.details.length > 5) {
-					console.log(color.dim(`    ... and ${diagnostic.details.length - 5} more`));
+	if (!quiet) {
+		if (bridgeHealth.level === "OK") {
+			console.log(`  ${color.green("✓")} BRIDGE OK: canonical OMO runtime registration detected`);
+		} else {
+			for (const diagnostic of bridgeHealth.diagnostics) {
+				const prefix = diagnostic.level === "ERROR" ? color.red("✗") : color.yellow("!");
+				console.log(`  ${prefix} ${diagnostic.message}`);
+				if (diagnostic.details && diagnostic.details.length > 0) {
+					for (const detail of diagnostic.details.slice(0, 5)) {
+						console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
+					}
+					if (diagnostic.details.length > 5) {
+						console.log(color.dim(`    ... and ${diagnostic.details.length - 5} more`));
+					}
 				}
 			}
 		}
@@ -333,34 +371,44 @@ export async function doctorCommand() {
 	).length;
 
 	if (warnings.length > 0) {
-		console.log();
-		console.log(color.bold("  Warnings"));
-		for (const warn of warnings.slice(0, 5)) {
-			console.log(`  ${color.yellow("!")} ${warn.name}`);
-		}
-		if (warnings.length > 5) {
-			console.log(color.dim(`    ... and ${warnings.length - 5} more`));
+		if (!quiet) {
+			console.log();
+			console.log(color.bold("  Warnings"));
+			for (const warn of warnings.slice(0, 5)) {
+				console.log(`  ${color.yellow("!")} ${warn.name}`);
+			}
+			if (warnings.length > 5) {
+				console.log(color.dim(`    ... and ${warnings.length - 5} more`));
+			}
 		}
 	}
 
-	console.log();
+	if (!quiet) {
+		console.log();
+	}
 
 	if (errors.length === 0 && bridgeErrorCount === 0 && warningCount === 0) {
-		p.outro(color.green("All checks passed!"));
+		if (!quiet) {
+			p.outro(color.green("All checks passed!"));
+		}
 		process.exitCode = 0;
 	} else if (errors.length === 0 && bridgeErrorCount === 0) {
-		p.outro(
-			color.yellow(
-				`Passed with ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
-			),
-		);
+		if (!quiet) {
+			p.outro(
+				color.yellow(
+					`Passed with ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
+				),
+			);
+		}
 		process.exitCode = 2;
 	} else {
-		p.outro(
-			color.red(
-				`${errors.length + bridgeErrorCount} error${errors.length + bridgeErrorCount > 1 ? "s" : ""}, ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
-			),
-		);
+		if (!quiet) {
+			p.outro(
+				color.red(
+					`${errors.length + bridgeErrorCount} error${errors.length + bridgeErrorCount > 1 ? "s" : ""}, ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
+				),
+			);
+		}
 		process.exitCode = 1;
 	}
 }
