@@ -1,0 +1,101 @@
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import * as p from "@clack/prompts";
+import color from "picocolors";
+import { getBridgeHealthReport } from "./bridge-diagnostics.js";
+import { requireOpencodePath, showWarning } from "../utils/errors.js";
+
+export async function statusCommand() {
+	if (process.argv.includes("--quiet")) return;
+
+	const cwd = process.cwd();
+	const opencodeDir = requireOpencodePath();
+
+	if (!opencodeDir) {
+		return;
+	}
+
+	const projectName = basename(cwd);
+	const bridgeHealth = getBridgeHealthReport(opencodeDir);
+
+	p.intro(color.bgCyan(color.black(` ${projectName} `)));
+
+	const agentDir = join(opencodeDir, "agent");
+	let agentNames: string[] = [];
+	if (existsSync(agentDir)) {
+		agentNames = readdirSync(agentDir)
+			.filter((f) => f.endsWith(".md") && lstatSync(join(agentDir, f)).isFile())
+			.map((f) => f.replace(".md", ""));
+	}
+
+	const skillDir = join(opencodeDir, "skill");
+	let skillCount = 0;
+	if (existsSync(skillDir)) {
+		skillCount = readdirSync(skillDir).filter(
+			(f) =>
+				lstatSync(join(skillDir, f)).isDirectory() &&
+				existsSync(join(skillDir, f, "SKILL.md")),
+		).length;
+	}
+
+	const commandDir = join(opencodeDir, "command");
+	let commandCount = 0;
+	if (existsSync(commandDir)) {
+		commandCount = readdirSync(commandDir).filter((f) =>
+			f.endsWith(".md"),
+		).length;
+	}
+
+	const toolDir = join(opencodeDir, "tool");
+	let toolCount = 0;
+	if (existsSync(toolDir)) {
+		toolCount = readdirSync(toolDir).filter((f) => f.endsWith(".ts")).length;
+	}
+
+	const configPath = join(opencodeDir, "opencode.json");
+	let mcpCount = 0;
+	if (existsSync(configPath)) {
+		try {
+			const config = JSON.parse(readFileSync(configPath, "utf-8"));
+			mcpCount = Object.keys(config.mcp || {}).length;
+		} catch {
+			// Ignore
+		}
+	}
+
+	console.log();
+	console.log(
+		`  ${color.bold("Agents")}     ${color.cyan(String(agentNames.length))}`,
+	);
+	if (agentNames.length > 0) {
+		console.log(`             ${color.dim(agentNames.join(", "))}`);
+	}
+	console.log();
+	console.log(
+		`  ${color.bold("Skills")}     ${color.cyan(String(skillCount))}`,
+	);
+	console.log();
+	console.log(
+		`  ${color.bold("Commands")}   ${color.cyan(String(commandCount))}`,
+	);
+	console.log();
+	console.log(`  ${color.bold("Tools")}      ${color.cyan(String(toolCount))}`);
+	console.log();
+	console.log(`  ${color.bold("MCP")}        ${color.cyan(String(mcpCount))}`);
+	console.log();
+	console.log(`  ${color.bold("Bridge Health")}  ${color.cyan(bridgeHealth.level)}`);
+	console.log();
+
+	if (bridgeHealth.level !== "OK") {
+		for (const diagnostic of bridgeHealth.diagnostics) {
+			console.log(`  ${diagnostic.message}`);
+		}
+		console.log();
+	}
+
+	if (!existsSync(join(opencodeDir, "node_modules"))) {
+		showWarning("Dependencies not installed", "cd .opencode && npm install");
+	}
+
+	p.outro(color.dim(".opencode/"));
+}
