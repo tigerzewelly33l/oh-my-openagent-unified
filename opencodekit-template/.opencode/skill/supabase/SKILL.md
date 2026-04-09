@@ -57,7 +57,7 @@ dependencies: []
 
 ### Quick Start
 
-```
+```text
 # List projects
 skill_mcp(mcp_name="supabase", tool_name="list_projects")
 
@@ -76,7 +76,7 @@ skill_mcp(mcp_name="supabase", tool_name="search_docs", arguments='{"query": "au
 
 ### Get Project Credentials
 
-```
+```text
 # Get API URL and keys for project
 skill_mcp(mcp_name="supabase", tool_name="get_project_url")
 skill_mcp(mcp_name="supabase", tool_name="get_publishable_keys")
@@ -90,7 +90,7 @@ skill_mcp(mcp_name="supabase", tool_name="deploy_edge_function", arguments='{"na
 
 ### Debug Issues
 
-```
+```text
 # Get logs by service
 skill_mcp(mcp_name="supabase", tool_name="get_logs", arguments='{"service": "postgres", "limit": 100}')
 

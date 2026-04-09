@@ -30,6 +30,7 @@ Add the keys you actually need for enabled services.
 
 - Spec-first flow: `/create` -> `/start <id>` -> `/ship <id>`
 - Use `/plan <id>` optionally for deeper implementation planning
+- Use `/doctor` for workspace health diagnostics
 - Use `/status` and `/resume` for continuity
 
 ## Skills

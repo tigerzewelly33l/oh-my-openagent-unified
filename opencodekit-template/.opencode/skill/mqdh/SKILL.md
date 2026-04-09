@@ -60,13 +60,13 @@ MQDH v6.2.1+ includes an **AI Tools settings tab** with:
 
 After setting up the environment variable and loading this skill:
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", list_tools=true)
 ```
 
 Then invoke tools:
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking setup"}')
 ```
 
@@ -82,7 +82,7 @@ Search and retrieve Meta Horizon OS documentation.
 
 **Example:**
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "passthrough API Unity"}')
 ```
 
@@ -92,7 +92,7 @@ Get the path to the bundled ADB executable.
 
 **Example:**
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", tool_name="get_adb_path", arguments='{}')
 ```
 
@@ -102,7 +102,7 @@ List connected Quest devices.
 
 **Example:**
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", tool_name="device_list", arguments='{}')
 ```
 
@@ -117,7 +117,7 @@ Install an APK to a connected Quest device.
 
 **Example:**
 
-```
+```bash
 skill_mcp(mcp_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/path/to/app.apk"}')
 ```
 
@@ -132,7 +132,7 @@ skill_mcp(mcp_name="mqdh", tool_name="install_apk", arguments='{"apk_path": "/pa
 
 ### 1. Look Up API Documentation
 
-```
+```bash
 # Search for hand tracking documentation
 skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query": "hand tracking gesture detection"}')
 
@@ -142,7 +142,7 @@ skill_mcp(mcp_name="mqdh", tool_name="fetch_meta_quest_doc", arguments='{"query"
 
 ### 2. Device Operations
 
-```
+```bash
 # List connected devices
 skill_mcp(mcp_name="mqdh", tool_name="device_list", arguments='{}')
 
