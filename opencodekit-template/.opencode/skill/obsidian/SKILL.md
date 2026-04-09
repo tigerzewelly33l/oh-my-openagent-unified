@@ -63,21 +63,21 @@ mcp:
 ```typescript
 // Read a single note
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "read_note",
   arguments: '{"path": "projects/project-ideas.md"}',
 });
 
 // Read multiple notes
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "read_multiple_notes",
   arguments: '{"paths": ["note1.md", "note2.md"], "includeContent": true}',
 });
 
 // List directory
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "list_directory",
   arguments: '{"path": "Projects"}',
 });
@@ -88,7 +88,7 @@ skill_mcp({
 ```typescript
 // Create new note (overwrite)
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "write_note",
   arguments: `{
     "path": "meeting-notes.md",
@@ -100,7 +100,7 @@ skill_mcp({
 
 // Append to existing note
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "write_note",
   arguments:
     '{"path": "daily-log.md", "content": "\\n\\n## 3:00 PM\\n- Completed review", "mode": "append"}',
@@ -112,21 +112,21 @@ skill_mcp({
 ```typescript
 // Search notes
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "search_notes",
   arguments: '{"query": "machine learning", "limit": 5, "searchContent": true}',
 });
 
 // Add tags
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "manage_tags",
   arguments: '{"path": "research-notes.md", "operation": "add", "tags": ["important", "ai"]}',
 });
 
 // List tags
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "manage_tags",
   arguments: '{"path": "research-notes.md", "operation": "list"}',
 });
@@ -137,7 +137,7 @@ skill_mcp({
 ```typescript
 // Delete requires confirmation (both paths must match)
 skill_mcp({
-  skill_name: "obsidian",
+  mcp_name: "obsidian",
   tool_name: "delete_note",
   arguments: '{"path": "old-draft.md", "confirmPath": "old-draft.md"}',
 });

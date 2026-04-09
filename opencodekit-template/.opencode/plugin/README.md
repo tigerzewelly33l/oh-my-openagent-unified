@@ -7,10 +7,8 @@ Plugins in this directory extend OpenCode with project-specific behavior and too
 ```text
 plugin/
 ├── memory.ts           # 4-tier automated memory system (capture → distill → curate → inject)
-├── sessions.ts         # Session search tools (find/read)
 ├── copilot-auth.ts     # GitHub Copilot provider/auth integration
 ├── stitch.ts           # Google Stitch UI generation (8 tools via @google/stitch-sdk)
-├── skill-mcp.ts        # Skill-scoped MCP bridge (skill_mcp tools)
 └── lib/
     ├── memory-tools.ts       # 6 core memory tools (observation, search, get, read, update, timeline)
     ├── memory-admin-tools.ts # Admin tool (memory-admin: 9 operations)
@@ -43,17 +41,11 @@ plugin/
   - Merges compaction logic (beads, handoffs, project memory, knowledge)
   - Provides 7 tools: observation, memory-search, memory-get, memory-read, memory-update, memory-timeline, memory-admin
 
-- `sessions.ts`
-  - Provides tools: `find_sessions`, `read_session`
-  - Direct SQLite access to OpenCode's session DB
-  - Multi-word AND search with relevance ranking
-  - 180-day time-bounded search
-  - Agentic `nextStep` guidance in results
-
-- `skill-mcp.ts`
-  - Loads MCP configs from skills
-  - Exposes `skill_mcp`, `skill_mcp_status`, `skill_mcp_disconnect`
-  - Supports tool filtering with `includeTools`
+- OMO runtime ownership
+  - Session browsing/search now belongs to OMO runtime tools (`session_list`, `session_read`, `session_search`, `session_info`) with temporary legacy invocation compatibility owned on the OMO side.
+  - Skill MCP execution now belongs to OMO `skill_mcp`, including temporary legacy `skill_name=` compatibility where unambiguous.
+  - `skill_mcp_status` and `skill_mcp_disconnect` are deprecated / unsupported in canonical OMO runtime guidance.
+  - If preserved project content still references the removed OCK runtime surfaces, `ock status` / `ock doctor` should warn explicitly during the bridge window.
 
 - `copilot-auth.ts`
   - Handles GitHub Copilot OAuth/device flow

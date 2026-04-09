@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { hashContent, loadManifest, MANIFEST_FILE } from "../utils/manifest";
+import { canonicalizeBridgePluginEntries } from "./bridge/runtime-contract";
 import { copyOpenCodeOnly } from "./init/files";
 import { finalizeInstalledFiles, findOrphans, preserveUserFiles } from "./init";
 import {
@@ -179,6 +180,102 @@ describe("init/upgrade regression helpers", () => {
 		expect(result.emitted).toContain(join(".opencode", "oh-my-openagent.jsonc"));
 		expect(bridgeConfig).toBe(templateBridgeConfig);
 		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent", "other-plugin"]);
+	});
+
+	it("emitCanonicalBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries", () => {
+		const targetDir = makeTempDir("ock-bridge-versioned-");
+		const opencodeDir = join(targetDir, ".opencode");
+		const templateRoot = process.cwd();
+		mkdirSync(opencodeDir, { recursive: true });
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: ["oh-my-opencode@latest", "oh-my-opencode@1.0.0"] }, null, 2),
+		);
+
+		emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir);
+		const opencodeConfig = JSON.parse(
+			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
+		) as { plugin: string[] };
+
+		expect(opencodeConfig.plugin).toContain("oh-my-openagent@latest");
+		expect(opencodeConfig.plugin).toContain("oh-my-openagent@1.0.0");
+		expect(opencodeConfig.plugin).not.toContain("oh-my-opencode");
+	});
+
+	it("canonicalizeBridgePluginEntries deduplicates exact and versioned legacy entries while preserving non-bridge plugins", () => {
+		expect(
+			canonicalizeBridgePluginEntries([
+				"oh-my-opencode",
+				"oh-my-openagent",
+				"oh-my-opencode@latest",
+				"oh-my-openagent@latest",
+				"other-plugin",
+				"other-plugin",
+			]),
+		).toEqual([
+			"oh-my-openagent",
+			"oh-my-openagent@latest",
+			"other-plugin",
+		]);
+	});
+
+	it("refreshBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries during upgrade", () => {
+		const opencodeDir = makeTempDir("ock-bridge-versioned-upgrade-");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: ["oh-my-opencode@latest"] }, null, 2),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		const opencodeConfig = JSON.parse(
+			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
+		) as { plugin: string[] };
+
+		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent@latest"]);
+	});
+
+	it("refreshBridgeArtifactsScaffold deduplicates bridge plugin entries while preserving non-bridge plugins", () => {
+		const opencodeDir = makeTempDir("ock-bridge-dedupe-upgrade-");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify(
+				{
+					plugin: [
+						"oh-my-opencode",
+						"oh-my-openagent",
+						"other-plugin",
+						"oh-my-opencode@latest",
+						"oh-my-openagent@latest",
+						"other-plugin",
+					],
+				},
+				null,
+				2,
+			),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		const opencodeConfig = JSON.parse(
+			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
+		) as { plugin: string[] };
+
+		expect(opencodeConfig.plugin).toEqual([
+			"oh-my-openagent",
+			"other-plugin",
+			"oh-my-openagent@latest",
+		]);
 	});
 
 	it("project-only init keeps the canonical bridge config local when shared dirs are skipped", async () => {

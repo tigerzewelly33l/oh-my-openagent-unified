@@ -82,7 +82,7 @@ Packages are scored 0-100 based on:
 
 ```typescript
 // Get comprehensive health info for a package (primary tool)
-skill_mcp({ skill_name: "v1-run", tool_name: "get_package_health", arguments: '{"name": "zod"}' });
+skill_mcp({ mcp_name: "v1", tool_name: "get_package_health", arguments: '{"name": "zod"}' });
 ```
 
 Response includes:
@@ -100,7 +100,7 @@ Response includes:
 ```typescript
 // Check if package is deprecated and get alternatives
 skill_mcp({
-  skill_name: "v1-run",
+  mcp_name: "v1",
   tool_name: "check_deprecated",
   arguments: '{"name": "request"}',
 });
@@ -111,7 +111,7 @@ skill_mcp({
 ```typescript
 // Check specific version for security issues
 skill_mcp({
-  skill_name: "v1-run",
+  mcp_name: "v1",
   tool_name: "check_vulnerabilities",
   arguments: '{"name": "lodash", "version": "4.17.20"}',
 });
@@ -122,7 +122,7 @@ skill_mcp({
 ```typescript
 // Find alternative packages
 skill_mcp({
-  skill_name: "v1-run",
+  mcp_name: "v1",
   tool_name: "find_alternatives",
   arguments: '{"name": "moment"}',
 });
@@ -133,7 +133,7 @@ skill_mcp({
 ```typescript
 // Compare similar packages (2-5 packages)
 skill_mcp({
-  skill_name: "v1-run",
+  mcp_name: "v1",
   tool_name: "compare_packages",
   arguments: '{"packages": ["zod", "yup", "joi", "valibot"]}',
 });
