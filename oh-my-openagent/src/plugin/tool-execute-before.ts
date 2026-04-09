@@ -1,7 +1,5 @@
 import type { PluginContext } from "./types"
 import { randomUUID } from "node:crypto"
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
 
 import { getMainSessionID } from "../features/claude-code-session-state"
 import { clearBoulderState, readBoulderState } from "../features/boulder-state"
@@ -10,77 +8,9 @@ import { resolveSessionAgent } from "./session-agent-resolver"
 import { parseRalphLoopArguments } from "../hooks/ralph-loop/command-arguments"
 import { ULTRAWORK_VERIFICATION_PROMISE } from "../hooks/ralph-loop/constants"
 import { readState, writeState } from "../hooks/ralph-loop/storage"
+import { appendVerifyLog, writeBeadCheckpoint } from "./bead-diagnostics"
 
 import type { CreatedHooks } from "../create-hooks"
-
-const BEADS_DIR = ".beads"
-const BEADS_ARTIFACTS_DIR = join(BEADS_DIR, "artifacts")
-const BEADS_VERIFY_LOG = join(BEADS_DIR, "verify.log")
-
-function writeBeadCheckpoint(directory: string, sessionID: string): void {
-  try {
-    const state = readBoulderState(directory)
-    if (!state) {
-      return
-    }
-
-    const artifactsDir = join(directory, BEADS_ARTIFACTS_DIR)
-    if (!existsSync(artifactsDir)) {
-      mkdirSync(artifactsDir, { recursive: true })
-    }
-
-    const checkpointData = {
-      session_id: sessionID,
-      cleared_at: new Date().toISOString(),
-      active_plan: state.active_plan ?? null,
-      plan_name: state.plan_name ?? null,
-      session_ids: state.session_ids ?? [],
-      task_sessions: state.task_sessions ?? {},
-      worktree_path: state.worktree_path ?? null,
-    }
-
-    const checkpointPath = join(artifactsDir, `checkpoint-${sessionID}.json`)
-    writeFileSync(checkpointPath, JSON.stringify(checkpointData, null, 2), "utf-8")
-    log("[bead-checkpoint] Written checkpoint before boulder state clear", {
-      sessionID,
-      checkpointPath,
-    })
-  } catch (error) {
-    log("[bead-checkpoint] Failed to write checkpoint", {
-      sessionID,
-      error: String(error),
-    })
-  }
-}
-
-function appendVerifyLog(directory: string, sessionID: string, status: "PASS" | "FAIL"): void {
-  try {
-    const beadsDir = join(directory, BEADS_DIR)
-    if (!existsSync(beadsDir)) {
-      mkdirSync(beadsDir, { recursive: true })
-    }
-
-    const state = readBoulderState(directory)
-    const planName = state?.plan_name ?? "unknown"
-    const timestamp = new Date().toISOString()
-
-    const entry = `session:${sessionID} plan:${planName} ${timestamp} ${status}\n`
-    const logPath = join(directory, BEADS_VERIFY_LOG)
-
-    const existingContent = existsSync(logPath) ? readFileSync(logPath, "utf-8") : ""
-    writeFileSync(logPath, existingContent + entry, "utf-8")
-    log("[verify-log] Appended to verify.log", {
-      sessionID,
-      planName,
-      status,
-    })
-  } catch (error) {
-    log("[verify-log] Failed to write to verify.log", {
-      sessionID,
-      error: String(error),
-    })
-  }
-}
 
 function getLoopCommandArguments(args: Record<string, unknown>, command: "ralph-loop" | "ulw-loop"): string {
   const rawUserMessage = typeof args.user_message === "string" ? args.user_message.trim() : ""
@@ -124,7 +54,7 @@ export function createToolExecuteBeforeHandler(args: {
   return async (input, output): Promise<void> => {
     if (input.tool.toLowerCase() === "bash" && typeof output.args.command === "string") {
       if (output.args.command.includes("\x00")) {
-        output.args.command = output.args.command.replace(/\x00/g, "")
+        output.args.command = output.args.command.split("\x00").join("")
         log("[tool-execute-before] Stripped null bytes from bash command", {
           sessionID: input.sessionID,
           callID: input.callID,
@@ -251,9 +181,15 @@ export function createToolExecuteBeforeHandler(args: {
         hooks.todoContinuationEnforcer?.cancelAllCountdowns()
         hooks.ralphLoop?.cancelLoop(sessionID)
 
-        writeBeadCheckpoint(ctx.directory, sessionID)
-        clearBoulderState(ctx.directory)
-        appendVerifyLog(ctx.directory, sessionID, "PASS")
+        const planName = readBoulderState(ctx.directory)?.plan_name ?? "unknown"
+        const checkpointSucceeded = writeBeadCheckpoint(ctx.directory, sessionID)
+        const clearSucceeded = clearBoulderState(ctx.directory)
+        appendVerifyLog(
+          ctx.directory,
+          sessionID,
+          checkpointSucceeded && clearSucceeded ? "PASS" : "FAIL",
+          planName,
+        )
         log("[stop-continuation] All continuation mechanisms stopped", {
           sessionID,
         })
