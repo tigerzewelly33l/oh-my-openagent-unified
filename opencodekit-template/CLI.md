@@ -1,13 +1,13 @@
 # `ock` CLI Reference
 
-OpenCodeKit provides a Bun-based CLI for managing OpenCode template configuration.
+OpenCodeKit provides a Node.js CLI for managing OpenCode template configuration.
 
 ## Install / Run
 
 ```bash
 # Local development
-bun install
-bun run src/index.ts --help
+npm install
+npm run dev -- --help
 
 # After build
 npm run build
