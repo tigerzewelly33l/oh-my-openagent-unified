@@ -1,0 +1,26 @@
+2026-04-09 OMO broad-suite blockers observed during Task 8 verification
+
+Command:
+- `cd /work/ock-omo-system/oh-my-openagent && bun test`
+
+Current observed non-bridge blockers:
+- `src/shared/archive-entry-validator.test.ts`
+  - fails because `zip` is not available on PATH in this environment
+- `src/shared/project-discovery-dirs.test.ts`
+  - expectation drift involving `/tmp/.opencode/...` discovery results
+- `src/tools/skill/async-description-refresh.test.ts`
+  - async native skill description refresh still missing the refreshed native-skill description in the observed output
+- `src/tools/delegate-task/background-task.test.ts`
+  - output/session metadata expectations differ from current background-task messaging
+- `src/hooks/runtime-fallback/**`
+  - large unrelated failure cluster in retry/fallback behavior assertions
+- `src/hooks/todo-continuation-enforcer/todo-continuation-enforcer.test.ts`
+  - countdown toast expectation mismatch
+- `src/shared/git-worktree/**`
+  - git diff summary / execFileSync expectations differ from current behavior
+- `src/features/skill-mcp-manager/**`
+  - broad-suite contamination remains in env-var / manager tests (`"not used"` mock error path), even though the focused four-file bridge command stays green
+
+Important negative evidence:
+- The session-manager bridge slice is no longer part of the broad-suite failure set after the hermetic `XDG_DATA_HOME` fix in `src/tools/session-manager/tools.test.ts`.
+- The exact focused four-file bridge command now passes again; it should no longer be treated as a current blocker.

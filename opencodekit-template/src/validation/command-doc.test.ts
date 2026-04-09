@@ -7,6 +7,7 @@ import {
 	validateCommandContent,
 	validateCommandDirectory,
 } from "./command-doc";
+import { runDocsDriftCheck } from "./docs-drift";
 
 const tempDirs: string[] = [];
 
@@ -130,3 +131,30 @@ memory_search({ query: "oops" });
 		expect(result.issues[0].rule).toBe("tool-name-format");
 	});
 });
+
+describe("runDocsDriftCheck", () => {
+	it("flags legacy session tool references in distributed command, skill, and AGENTS docs", () => {
+		const root = mkdtempSync(join(tmpdir(), "docs-drift-legacy-session-"));
+		tempDirs.push(root);
+
+		mkdirSync(join(root, ".opencode", "command"), { recursive: true });
+		mkdirSync(join(root, ".opencode", "skill", "context-management"), {
+			recursive: true,
+		});
+		mkdirSync(join(root, ".opencode", "plugin"), { recursive: true });
+		mkdirSync(join(root, ".opencode", "agent"), { recursive: true });
+
+		writeFileSync(join(root, "README.md"), "")
+		writeFileSync(join(root, "CLI.md"), "")
+		writeFileSync(join(root, ".opencode", "README.md"), "")
+		writeFileSync(join(root, ".opencode", "plugin", "README.md"), "")
+		writeFileSync(join(root, ".opencode", "AGENTS.md"), 'find_sessions({ query: "auth" })\n')
+		writeFileSync(join(root, ".opencode", "command", "status.md"), 'session status\nread_session({ session_id: "ses_123" })\n')
+		writeFileSync(join(root, ".opencode", "skill", "context-management", "SKILL.md"), 'find_sessions({ query: "auth" })\n')
+
+		const result = runDocsDriftCheck(root)
+
+		expect(result.ok).toBe(false)
+		expect(result.issues.some((issue) => issue.rule === "legacy-session-tool-reference")).toBe(true)
+	})
+})

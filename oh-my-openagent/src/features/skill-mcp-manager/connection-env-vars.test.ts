@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, mock, test } from "bun:test"
 import type { ClaudeCodeMcpServer } from "../claude-code-mcp-loader/types"
 import type { SkillMcpClientInfo, SkillMcpManagerState } from "./types"
+import { importFreshModuleWithMocks } from "./fresh-module-harness"
 
 const trackedStates: SkillMcpManagerState[] = []
 const createdStdioTransports: MockStdioClientTransport[] = []
@@ -47,24 +48,36 @@ class MockStreamableHTTPClientTransport {
   async start() {}
 }
 
-mock.module("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: MockClient,
-}))
+const { disconnectAll } = await import("./cleanup")
 
-mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: MockStdioClientTransport,
-}))
-
-mock.module("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: MockStreamableHTTPClientTransport,
-}))
+async function importFreshConnectionModule() {
+  return await importFreshModuleWithMocks<typeof import("./connection")>({
+    importPath: `./connection?env-vars-test=${Date.now()}-${Math.random()}`,
+    mockedModules: [
+      {
+        specifier: "@modelcontextprotocol/sdk/client/index.js",
+        factory: () => ({ Client: MockClient }),
+      },
+      {
+        specifier: "@modelcontextprotocol/sdk/client/stdio.js",
+        factory: () => ({ StdioClientTransport: MockStdioClientTransport }),
+      },
+      {
+        specifier: "@modelcontextprotocol/sdk/client/streamableHttp.js",
+        factory: () => ({ StreamableHTTPClientTransport: MockStreamableHTTPClientTransport }),
+      },
+    ],
+    restoreSpecifiers: [
+      "@modelcontextprotocol/sdk/client/index.js",
+      "@modelcontextprotocol/sdk/client/stdio.js",
+      "@modelcontextprotocol/sdk/client/streamableHttp.js",
+    ],
+  })
+}
 
 afterAll(() => {
   mock.restore()
 })
-
-const { disconnectAll } = await import("./cleanup")
-const { getOrCreateClient } = await import("./connection")
 
 function createState(): SkillMcpManagerState {
   const state: SkillMcpManagerState = {
@@ -155,6 +168,7 @@ describe("getOrCreateClient env var expansion", () => {
         }
 
         // when
+        const { getOrCreateClient } = await importFreshConnectionModule()
         await getOrCreateClient({ state, clientKey, info, config })
 
         // then
@@ -181,6 +195,7 @@ describe("getOrCreateClient env var expansion", () => {
       }
 
       // when
+      const { getOrCreateClient } = await importFreshConnectionModule()
       await getOrCreateClient({ state, clientKey, info, config })
 
       // then
@@ -210,6 +225,7 @@ describe("getOrCreateClient env var expansion", () => {
       }
 
       // when
+      const { getOrCreateClient } = await importFreshConnectionModule()
       await getOrCreateClient({ state, clientKey, info, config })
 
       // then
@@ -240,6 +256,7 @@ describe("getOrCreateClient env var expansion", () => {
       }
 
       // when
+      const { getOrCreateClient } = await importFreshConnectionModule()
       await getOrCreateClient({ state, clientKey, info, config })
 
       // then
@@ -263,6 +280,7 @@ describe("getOrCreateClient env var expansion", () => {
       }
 
       // when
+      const { getOrCreateClient } = await importFreshConnectionModule()
       await getOrCreateClient({ state, clientKey, info, config })
 
       // then

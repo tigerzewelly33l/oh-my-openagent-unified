@@ -1,0 +1,47 @@
+2026-04-09 Task 8 verification evidence
+
+OCK source/build/plugin removal:
+- Verified source template no longer contains `.opencode/plugin/sessions.ts` or `.opencode/plugin/skill-mcp.ts`.
+- Verified built template no longer contains `dist/template/.opencode/plugin/sessions.ts` or `dist/template/.opencode/plugin/skill-mcp.ts`.
+
+OCK verification:
+- `cd /work/ock-omo-system/opencodekit-template && npm run typecheck` ✅
+- `cd /work/ock-omo-system/opencodekit-template && npm run lint && npm run test && npm run build` ✅
+  - lint result: 0 errors, 1 pre-existing warning in `src/commands/init-upgrade.test.ts` (`eslint(no-unsafe-finally)`)
+  - tests: 7 files passed, 36 tests passed
+  - build: succeeded and regenerated `dist/template/.opencode/`
+- Rechecked after the final source-doc and OMO test cleanup:
+  - `cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands/init-upgrade.test.ts src/commands/status-doctor.test.ts src/validation/docs-drift.test.ts` ✅
+  - `cd /work/ock-omo-system/opencodekit-template && npm run validate:docs-drift` ✅
+  - built `dist/template/.opencode/skill/v1-run/SKILL.md` and `.../skill/obsidian/SKILL.md` no longer contain legacy `skill_name` syntax
+
+Bridge diagnostics after plugin removal:
+- Focused OCK diagnostics test file passed:
+  - `cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands/status-doctor.test.ts` ✅
+- Manual preserved-content drift fixture produced:
+  - `BRIDGE WARNING: preserved project content still references legacy runtime surfaces`
+  - preserved file detail path for `skill/context-management/SKILL.md`
+  - exit code `2`
+
+OMO bridge verification:
+- `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck` ✅
+- `cd /work/ock-omo-system/oh-my-openagent && bun run build` ✅
+- Focused bridge suite passed after making `src/tools/session-manager/tools.test.ts` hermetic:
+  - `bun test src/tools/session-manager/tools.test.ts src/tools/session-manager/tools.compatibility.test.ts src/tools/skill-mcp/tools.test.ts src/features/skill-mcp-manager/manager.test.ts` ✅
+- Broader session-manager cluster also passed:
+  - `bun test src/tools/session-manager/tools.test.ts src/tools/session-manager/tools.compatibility.test.ts src/tools/session-manager/storage.test.ts src/tools/session-manager/storage-fallback.test.ts src/tools/session-manager/utils.test.ts` ✅
+- Session-manager hermetic test stabilization details:
+  - `src/tools/session-manager/tools.test.ts` now isolates `XDG_DATA_HOME` and `CLAUDE_CONFIG_DIR`, dynamically imports `./tools`, and primes the OpenCode version cache to avoid the import-time `opencode --version` timeout path during the focused bridge command.
+  - canonical smoke assertions now live only in `tools.test.ts`, while legacy alias assertions remain in `tools.compatibility.test.ts`
+
+OCK bridge docs/diagnostics follow-up:
+- `src/commands/bridge-diagnostics.ts` now scans preserved `.opencode/tool/**/*.md` content in addition to `AGENTS.md`, `command/`, and `skill/` markdown.
+- `src/validation/docs-drift.ts` now detects both `skill_mcp(skill_name=...)` and object-style `skill_name:` legacy syntax.
+- Remaining legacy `skill_name` examples were migrated in:
+  - `.opencode/skill/v1-run/SKILL.md`
+  - `.opencode/skill/obsidian/SKILL.md`
+- `cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands/status-doctor.test.ts src/validation/docs-drift.test.ts` ✅
+
+Conclusion:
+- Task 8 bridge/plugin-removal slice is healthy.
+- Remaining full-suite OMO failures are outside the bridge slice and are documented separately in `.sisyphus/notepads/ock-omo-bridge-unification/issues.md`.

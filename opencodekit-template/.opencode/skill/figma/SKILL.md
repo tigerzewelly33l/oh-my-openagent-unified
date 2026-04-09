@@ -42,7 +42,7 @@ To create a Figma Personal Access Token:
 After loading this skill, use `skill_mcp` to invoke Figma tools:
 
 ```
-skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123", "nodeId": "1234:5678"}')
+skill_mcp(mcp_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123", "nodeId": "1234:5678"}')
 ```
 
 ## Available Tools
@@ -102,16 +102,16 @@ Example: `https://www.figma.com/design/abc123xyz/MyDesign?node-id=1234-5678`
 
 ```
 # Fetch specific frame/component
-skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123xyz", "nodeId": "1234:5678"}')
+skill_mcp(mcp_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123xyz", "nodeId": "1234:5678"}')
 
 # Fetch entire file (use sparingly - can be large)
-skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123xyz"}')
+skill_mcp(mcp_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123xyz"}')
 ```
 
 ### 3. Download Assets (Optional)
 
 ```
-skill_mcp(skill_name="figma", tool_name="download_figma_images", arguments='{
+skill_mcp(mcp_name="figma", tool_name="download_figma_images", arguments='{
   "fileKey": "abc123xyz",
   "nodes": [
     {"nodeId": "1234:5678", "fileName": "hero-image.png"},
@@ -129,7 +129,7 @@ skill_mcp(skill_name="figma", tool_name="download_figma_images", arguments='{
 # User provides: https://www.figma.com/design/abc123/Dashboard?node-id=100-200
 
 # 1. Fetch the design data
-skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123", "nodeId": "100-200"}')
+skill_mcp(mcp_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "abc123", "nodeId": "100-200"}')
 
 # 2. Review the returned YAML for:
 #    - Layout structure (flex, grid, spacing)
@@ -144,7 +144,7 @@ skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey":
 
 ```
 # Fetch a design system file
-skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "designSystemKey"}')
+skill_mcp(mcp_name="figma", tool_name="get_figma_data", arguments='{"fileKey": "designSystemKey"}')
 
 # The globalVars section contains:
 # - Color styles
@@ -155,7 +155,7 @@ skill_mcp(skill_name="figma", tool_name="get_figma_data", arguments='{"fileKey":
 ### Download Icons
 
 ```
-skill_mcp(skill_name="figma", tool_name="download_figma_images", arguments='{
+skill_mcp(mcp_name="figma", tool_name="download_figma_images", arguments='{
   "fileKey": "iconLibraryKey",
   "nodes": [
     {"nodeId": "10:20", "fileName": "icon-home.svg"},

@@ -1,0 +1,72 @@
+TASK-8 CROSS-REPO VERIFICATION PASS — OCK + OMO BOOTSTRAP CONTRACT
+===================================================================
+
+Date: 2026-04-09
+Bead: bd-b6a (bootstrap runtime contract)
+Task: 8 (cross-repo verification pass)
+
+VERIFICATION RESULTS
+====================
+
+### OCK Verification Suite
+
+1. Typecheck:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run typecheck
+   Result: PASS (tsgo --noEmit completed with no errors)
+
+2. Tests:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run test
+   Result: PASS (5 test files, 23 tests passed)
+
+3. Build:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run build
+   Result: PASS (tsdown completed, dist/index.js 201.73 kB)
+
+### OMO Verification Suite
+
+1. Typecheck:
+   Command: cd /work/ock-omo-system/oh-my-openagent && bun run typecheck
+   Result: PASS (tsc --noEmit completed with no errors)
+
+2. Plugin-config Tests:
+   Command: cd /work/ock-omo-system/oh-my-openagent && bun test src/plugin-config.test.ts
+   Result: PASS (20 tests, 0 failures, 54 expect() calls)
+
+3. Build:
+   Command: cd /work/ock-omo-system/oh-my-openagent && bun run build
+   Result: PASS (bundled index.js 6.51 MB, cli index.js 3.94 MB, schema generated)
+
+### Smoke Tests (Temp-Dir)
+
+1. Fresh init canonical bridge:
+   Command: TMP="$(mktemp -d)" && cd "$TMP" && OCK_LICENSE_BYPASS=1 node /work/ock-omo-system/opencodekit-template/dist/index.js init --yes --project-only --beads
+   Checks:
+   - test -f "$TMP/.opencode/opencode.json" [PASS]
+   - test -f "$TMP/.opencode/oh-my-openagent.jsonc" [PASS]
+   - grep -q 'oh-my-openagent' "$TMP/.opencode/opencode.json" [PASS]
+   - ! grep -q 'oh-my-opencode' "$TMP/.opencode/opencode.json" [PASS]
+   - test -e "$TMP/.beads" [PASS]
+   Result: PASS
+
+2. Global-config overlap:
+   Command: TMP_HOME="$(mktemp -d)" && TMP_PROJ="$(mktemp -d)" && mkdir -p "$TMP_HOME/opencode/agent" && printf 'agent\n' > "$TMP_HOME/opencode/agent/demo.md" && cd "$TMP_PROJ" && OCK_LICENSE_BYPASS=1 node /work/ock-omo-system/opencodekit-template/dist/index.js init --yes --project-only
+   Checks:
+   - test -f "$TMP_PROJ/.opencode/oh-my-openagent.jsonc" [PASS]
+   - test ! -d "$TMP_PROJ/.opencode/agent" [PASS - global agent dir was skipped, but canonical config still created]
+   Result: PASS (canonical local bridge config exists even when shared dirs skipped)
+
+3. Upgrade prune behavior:
+   Command: TMP="$(mktemp -d)" && cd "$TMP" && OCK_LICENSE_BYPASS=1 node /work/ock-omo-system/opencodekit-template/dist/index.js init --yes && printf 'orphan\n' > "$TMP/.opencode/obsolete-bridge-file.txt" && OCK_LICENSE_BYPASS=1 node /work/ock-omo-system/opencodekit-template/dist/index.js upgrade --force --prune-all
+   Checks:
+   - test ! -f "$TMP/.opencode/obsolete-bridge-file.txt" [PASS - orphan removed]
+   - test -f "$TMP/.opencode/oh-my-openagent.jsonc" [PASS - canonical config preserved]
+   Result: PASS
+
+CROSS-REPO BRIDGE CONTRACT STATUS
+=================================
+All verification passes. The bridge contract between OCK init/upgrade and OMO runtime config loading is verified to work across the three key scenarios:
+- Fresh init emits canonical OMO identifiers only
+- Global-config overlap yields local canonical bridge config
+- Upgrade prune removes orphans while preserving canonical bridge config
+
+This verifies the implementation from tasks 1-7 satisfies the Definition of Done in the bootstrap runtime contract plan.

@@ -57,45 +57,45 @@ dependencies: []
 
 ### Quick Start
 
-```
+```text
 # List projects
-skill_mcp(skill_name="supabase", tool_name="list_projects")
+skill_mcp(mcp_name="supabase", tool_name="list_projects")
 
 # List tables in database
-skill_mcp(skill_name="supabase", tool_name="list_tables")
+skill_mcp(mcp_name="supabase", tool_name="list_tables")
 
 # Execute SQL query
-skill_mcp(skill_name="supabase", tool_name="execute_sql", arguments='{"query": "SELECT * FROM users LIMIT 10"}')
+skill_mcp(mcp_name="supabase", tool_name="execute_sql", arguments='{"query": "SELECT * FROM users LIMIT 10"}')
 
 # Generate TypeScript types
-skill_mcp(skill_name="supabase", tool_name="generate_typescript_types")
+skill_mcp(mcp_name="supabase", tool_name="generate_typescript_types")
 
 # Search docs
-skill_mcp(skill_name="supabase", tool_name="search_docs", arguments='{"query": "auth custom claims"}')
+skill_mcp(mcp_name="supabase", tool_name="search_docs", arguments='{"query": "auth custom claims"}')
 ```
 
 ### Get Project Credentials
 
-```
+```text
 # Get API URL and keys for project
-skill_mcp(skill_name="supabase", tool_name="get_project_url")
-skill_mcp(skill_name="supabase", tool_name="get_publishable_keys")
+skill_mcp(mcp_name="supabase", tool_name="get_project_url")
+skill_mcp(mcp_name="supabase", tool_name="get_publishable_keys")
 
 # List Edge Functions
-skill_mcp(skill_name="supabase", tool_name="list_edge_functions")
+skill_mcp(mcp_name="supabase", tool_name="list_edge_functions")
 
 # Deploy Edge Function
-skill_mcp(skill_name="supabase", tool_name="deploy_edge_function", arguments='{"name": "my-function", "import_map": {...}, "entrypoint": "index.ts"}')
+skill_mcp(mcp_name="supabase", tool_name="deploy_edge_function", arguments='{"name": "my-function", "import_map": {...}, "entrypoint": "index.ts"}')
 ```
 
 ### Debug Issues
 
-```
+```text
 # Get logs by service
-skill_mcp(skill_name="supabase", tool_name="get_logs", arguments='{"service": "postgres", "limit": 100}')
+skill_mcp(mcp_name="supabase", tool_name="get_logs", arguments='{"service": "postgres", "limit": 100}')
 
 # Check advisories
-skill_mcp(skill_name="supabase", tool_name="get_advisors")
+skill_mcp(mcp_name="supabase", tool_name="get_advisors")
 ```
 
 ## Security Notes

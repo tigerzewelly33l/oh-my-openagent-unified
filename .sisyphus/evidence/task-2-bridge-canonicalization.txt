@@ -1,0 +1,69 @@
+TASK-2 BRIDGE CANONICALIZATION — Bridge Unification Phase 1
+============================================================
+
+Date: 2026-04-09
+Bead: bd-l1s (Unified state architecture)
+Task: 2 (Harden OCK init/upgrade bridge canonicalization)
+
+VERIFICATION RESULTS
+===================
+
+### Canonicalization Implementation
+
+1. Versioned Legacy Entry Support:
+   - Added toCanonicalPluginEntry() that handles:
+     - Exact legacy: "oh-my-opencode" → "oh-my-openagent"
+     - Versioned legacy: "oh-my-opencode@latest" → "oh-my-openagent@latest"
+     - Versioned legacy: "oh-my-opencode@1.0.0" → "oh-my-openagent@1.0.0"
+
+2. Deduplication Logic:
+   - Added hasCanonicalPluginEntry() to check for any canonical variant
+   - Prevents duplicate "oh-my-openagent" when versioned variants exist
+   - Ensures deduplication preserves version suffixes
+
+3. Files Updated:
+   - src/commands/init/runtime.ts - canonicalization + hasCanonicalPluginEntry
+   - src/commands/upgrade/bridge.ts - canonicalization + hasCanonicalPluginEntry
+
+### Test Results
+
+Command: cd /work/ock-omo-system/opencodekit-template && npm run test -- src/commands/init-upgrade.test.ts
+Result: PASS (14 tests passed - 2 new tests for versioned canonicalization)
+
+### Full Verification
+
+1. Typecheck:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run typecheck
+   Result: PASS
+
+2. Lint:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run lint
+   Result: PASS (0 errors, 1 unrelated warning)
+
+3. Build:
+   Command: cd /work/ock-omo-system/opencodekit-template && npm run build
+   Result: PASS (dist/index.js 202.40 kB)
+
+CHANGED FILES
+=============
+- src/commands/init/runtime.ts (MODIFIED - added versioned canonicalization)
+- src/commands/upgrade/bridge.ts (MODIFIED - added versioned canonicalization)
+- src/commands/init-upgrade.test.ts (MODIFIED - added 2 new test cases)
+
+ACCEPTANCE CRITERIA STATUS
+===========================
+[✓] Exact legacy entry "oh-my-opencode" is rewritten to "oh-my-openagent"
+[✓] Versioned legacy entry such as "oh-my-opencode@latest" is rewritten to "oh-my-openagent@latest"
+[✓] Duplicate plugin registrations are deduplicated while preserving non-bridge plugin entries
+[✓] .opencode/oh-my-openagent.jsonc is always refreshed from the template on init/upgrade
+[✓] npm run test passes with new migration cases
+[✓] npm run typecheck && npm run lint && npm run test && npm run build passes
+
+NEW TEST CASES
+==============
+1. emitCanonicalBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries
+   - Tests: "oh-my-opencode@latest" → "oh-my-openagent@latest"
+   - Tests: "oh-my-opencode@1.0.0" → "oh-my-openagent@1.0.0"
+
+2. refreshBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries during upgrade
+   - Tests: "oh-my-opencode@latest" → "oh-my-openagent@latest" on upgrade

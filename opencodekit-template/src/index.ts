@@ -8,18 +8,16 @@ import { agentCommand } from "./commands/agent.js";
 import { commandCommand } from "./commands/command.js";
 import { completionCommand } from "./commands/completion.js";
 import { configCommand } from "./commands/config.js";
+import { doctorCommand } from "./commands/doctor.js";
 import { initCommand } from "./commands/init.js";
 import { licenseCommand } from "./commands/license.js";
-import {
-	doctorCommand,
-	interactiveMenu,
-	statusCommand,
-} from "./commands/menu.js";
+import { interactiveMenu } from "./commands/menu.js";
 import { configureUtf8Output } from "./configure-utf8-output.js";
 import { runCommandWithHoneybadger } from "./honeybadger-command.js";
 import { ensureLicenseFor } from "./license-gate.js";
 import { parseCli } from "./parse-cli.js";
 import { patchCommand } from "./commands/patch.js";
+import { statusCommand } from "./commands/status.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { launchTUI } from "./tui/index.js";
 import { initHoneybadger } from "./utils/honeybadger-client.js";
@@ -71,21 +69,6 @@ cli
 	.command("license [action]", "Manage license (status, deactivate)")
 	.action(async (action?: string) => {
 		await runCommandWithHoneybadger("license", () => licenseCommand(action));
-	});
-
-cli
-	.command("agent [action]", "Manage agents (list, add, view)")
-	.action(async (action?: string) => {
-		if (!action) {
-			// Show help for agent command
-			console.log("\nUsage: ock agent <action>\n");
-			console.log("Actions:");
-			console.log("  list    List all agents");
-			console.log("  add     Create a new agent");
-			console.log("  view    View agent details\n");
-			return;
-		}
-		await agentCommand(action);
 	});
 
 cli

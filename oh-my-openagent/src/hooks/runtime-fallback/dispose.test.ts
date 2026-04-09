@@ -1,5 +1,9 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
+import * as autoRetryModule from "./auto-retry"
+import * as chatMessageHandlerModule from "./chat-message-handler"
+import * as eventHandlerModule from "./event-handler"
+import * as messageUpdateHandlerModule from "./message-update-handler"
 
 let capturedDeps: HookDeps | undefined
 
@@ -20,26 +24,6 @@ const mockCreateEventHandler = mock(() => async () => {})
 const mockCreateMessageUpdateHandler = mock(() => async () => {})
 const mockCreateChatMessageHandler = mock(() => async () => {})
 
-mock.module("./auto-retry", () => ({
-  createAutoRetryHelpers: mockCreateAutoRetryHelpers,
-}))
-
-mock.module("./event-handler", () => ({
-  createEventHandler: mockCreateEventHandler,
-}))
-
-mock.module("./message-update-handler", () => ({
-  createMessageUpdateHandler: mockCreateMessageUpdateHandler,
-}))
-
-mock.module("./chat-message-handler", () => ({
-  createChatMessageHandler: mockCreateChatMessageHandler,
-}))
-
-afterAll(() => {
-  mock.restore()
-})
-
 const { createRuntimeFallbackHook } = await import("./hook")
 
 function createMockContext(): RuntimeFallbackPluginInput {
@@ -58,6 +42,16 @@ function createMockContext(): RuntimeFallbackPluginInput {
   }
 }
 
+function createMockPluginConfig() {
+  return {
+    git_master: {
+      commit_footer: true,
+      include_co_authored_by: true,
+      git_env_prefix: "GIT_MASTER=1",
+    },
+  }
+}
+
 describe("createRuntimeFallbackHook dispose", () => {
   const originalSetInterval = globalThis.setInterval
   const originalClearInterval = globalThis.clearInterval
@@ -66,6 +60,10 @@ describe("createRuntimeFallbackHook dispose", () => {
   const clearedIntervals: Array<Parameters<typeof originalClearInterval>[0]> = []
   const clearedTimeouts: Array<Parameters<typeof originalClearTimeout>[0]> = []
   const timeoutMapSizesDuringClear: number[] = []
+  let createAutoRetryHelpersSpy: ReturnType<typeof spyOn>
+  let createEventHandlerSpy: ReturnType<typeof spyOn>
+  let createMessageUpdateHandlerSpy: ReturnType<typeof spyOn>
+  let createChatMessageHandlerSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
     capturedDeps = undefined
@@ -78,6 +76,11 @@ describe("createRuntimeFallbackHook dispose", () => {
     mockCreateEventHandler.mockClear()
     mockCreateMessageUpdateHandler.mockClear()
     mockCreateChatMessageHandler.mockClear()
+
+    createAutoRetryHelpersSpy = spyOn(autoRetryModule, "createAutoRetryHelpers").mockImplementation(mockCreateAutoRetryHelpers)
+    createEventHandlerSpy = spyOn(eventHandlerModule, "createEventHandler").mockImplementation(mockCreateEventHandler)
+    createMessageUpdateHandlerSpy = spyOn(messageUpdateHandlerModule, "createMessageUpdateHandler").mockImplementation(mockCreateMessageUpdateHandler)
+    createChatMessageHandlerSpy = spyOn(chatMessageHandlerModule, "createChatMessageHandler").mockImplementation(mockCreateChatMessageHandler)
 
     const wrappedSetInterval = ((handler: () => void, timeout?: number) => {
       const interval = originalSetInterval(handler, timeout)
@@ -102,6 +105,11 @@ describe("createRuntimeFallbackHook dispose", () => {
   })
 
   afterEach(() => {
+    createAutoRetryHelpersSpy.mockRestore()
+    createEventHandlerSpy.mockRestore()
+    createMessageUpdateHandlerSpy.mockRestore()
+    createChatMessageHandlerSpy.mockRestore()
+
     globalThis.setInterval = originalSetInterval
     globalThis.clearInterval = originalClearInterval
     globalThis.clearTimeout = originalClearTimeout
@@ -109,7 +117,7 @@ describe("createRuntimeFallbackHook dispose", () => {
 
   test("#given runtime-fallback hook created #when dispose() is called #then cleanup interval is cleared", () => {
     // given
-    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: {} })
+    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: createMockPluginConfig() })
 
     // when
     hook.dispose?.()
@@ -121,7 +129,7 @@ describe("createRuntimeFallbackHook dispose", () => {
 
   test("#given hook with session state data #when dispose() is called #then all Maps and Sets are empty", () => {
     // given
-    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: {} })
+    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: createMockPluginConfig() })
     const fallbackTimeout = setTimeout(() => {}, 60_000)
 
     capturedDeps?.sessionStates.set("session-1", {
@@ -149,7 +157,7 @@ describe("createRuntimeFallbackHook dispose", () => {
 
   test("#given hook with pending fallback timeouts #when dispose() is called #then timeouts are cleared before Map is emptied", () => {
     // given
-    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: {} })
+    const hook = createRuntimeFallbackHook(createMockContext(), { pluginConfig: createMockPluginConfig() })
     const fallbackTimeout = setTimeout(() => {}, 60_000)
     capturedDeps?.sessionFallbackTimeouts.set("session-1", fallbackTimeout)
 

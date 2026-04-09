@@ -1,61 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { UpgradeCopyResult } from "./files.js";
-
-const PLUGIN_NAME = "oh-my-openagent";
-const LEGACY_PLUGIN_NAME = "oh-my-opencode";
-const CONFIG_BASENAME = "oh-my-openagent";
+import {
+	CONFIG_BASENAME,
+	ensureCanonicalPluginRegistration,
+	refreshCanonicalBridgeConfigFromTemplate,
+} from "../bridge/runtime-contract.js";
 
 const TEMPLATE_OWNED_BRIDGE_FILES = [`${CONFIG_BASENAME}.jsonc`] as const;
-
-function getCanonicalBridgeTemplatePath(templateOpencode: string): string {
-	return join(templateOpencode, `${CONFIG_BASENAME}.jsonc`);
-}
-
-function refreshCanonicalBridgeConfigFromTemplate(templateOpencode: string, opencodeDir: string): void {
-	const templateBridgeConfigPath = getCanonicalBridgeTemplatePath(templateOpencode);
-	if (!existsSync(templateBridgeConfigPath)) {
-		return;
-	}
-
-	const bridgeConfigPath = join(opencodeDir, `${CONFIG_BASENAME}.jsonc`);
-	writeFileSync(
-		bridgeConfigPath,
-		readFileSync(templateBridgeConfigPath, "utf-8"),
-	);
-}
-
-function ensureCanonicalPluginRegistration(opencodeConfigPath: string): void {
-	if (!existsSync(opencodeConfigPath)) {
-		return;
-	}
-
-	const config = JSON.parse(readFileSync(opencodeConfigPath, "utf-8")) as {
-		plugin?: unknown;
-	};
-	const existingPlugins = Array.isArray(config.plugin)
-		? config.plugin.filter((value): value is string => typeof value === "string")
-		: [];
-	const canonicalPlugins = existingPlugins
-		.map((pluginName) =>
-			pluginName === LEGACY_PLUGIN_NAME ? PLUGIN_NAME : pluginName,
-		)
-		.filter((pluginName, index, values) => values.indexOf(pluginName) === index);
-
-	if (!canonicalPlugins.includes(PLUGIN_NAME)) {
-		canonicalPlugins.push(PLUGIN_NAME);
-	}
-
-	if (
-		existingPlugins.length === canonicalPlugins.length &&
-		existingPlugins.every((pluginName, index) => pluginName === canonicalPlugins[index])
-	) {
-		return;
-	}
-
-	config.plugin = canonicalPlugins;
-	writeFileSync(opencodeConfigPath, `${JSON.stringify(config, null, 2)}\n`);
-}
 
 function normalizeRelativePath(path: string): string {
 	return path.replaceAll("\\", "/");
@@ -104,5 +55,8 @@ export function refreshBridgeArtifactsScaffold(_options: {
 		_options.templateOpencode,
 		_options.opencodeDir,
 	);
-	ensureCanonicalPluginRegistration(join(_options.opencodeDir, "opencode.json"));
+	const opencodeConfigPath = `${_options.opencodeDir}/opencode.json`;
+	if (existsSync(opencodeConfigPath)) {
+		ensureCanonicalPluginRegistration(opencodeConfigPath);
+	}
 }

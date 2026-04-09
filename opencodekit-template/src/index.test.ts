@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 function getRegisteredCommandNames(source: string): string[] {
 	const matches = source.matchAll(/\.command\(\s*"([^"]+)"/g);
-	const commandNames = new Set<string>();
+	const commandNames: string[] = [];
 
 	for (const match of matches) {
 		const rawName = match[1]?.trim() ?? "";
@@ -12,21 +12,26 @@ function getRegisteredCommandNames(source: string): string[] {
 			continue;
 		}
 
-		commandNames.add(rawName.split(" ")[0] ?? rawName);
+		commandNames.push(rawName.split(" ")[0] ?? rawName);
 	}
 
-	return [...commandNames].sort();
+	return commandNames;
 }
 
-describe("ock CLI runtime front-door contract", () => {
-	it("locks OCK to the bootstrap and management command surface", () => {
-		const source = readFileSync(new URL("./index.ts", import.meta.url), "utf-8");
-		const commandNames = getRegisteredCommandNames(source);
+function getUniqueSortedCommandNames(commandNames: string[]): string[] {
+	return [...new Set(commandNames)].sort();
+}
 
-		expect(commandNames).toEqual([
-			"activate",
-			"agent",
-			"command",
+	describe("ock CLI runtime front-door contract", () => {
+		it("locks OCK to the bootstrap and management command surface", () => {
+			const source = readFileSync(new URL("./index.ts", import.meta.url), "utf-8");
+			const commandNames = getRegisteredCommandNames(source);
+
+			expect(commandNames).toHaveLength(getUniqueSortedCommandNames(commandNames).length);
+			expect(getUniqueSortedCommandNames(commandNames)).toEqual([
+				"activate",
+				"agent",
+				"command",
 			"completion",
 			"config",
 			"doctor",

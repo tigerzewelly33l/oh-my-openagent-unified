@@ -55,19 +55,19 @@ export class SkillMcpManager {
   }
 
   async listTools(info: SkillMcpClientInfo, context: SkillMcpServerContext): Promise<Tool[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config)
+    const client = await this.getOrCreateClientWithRetryForTest(info, context.config)
     const result = await client.listTools()
     return result.tools
   }
 
   async listResources(info: SkillMcpClientInfo, context: SkillMcpServerContext): Promise<Resource[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config)
+    const client = await this.getOrCreateClientWithRetryForTest(info, context.config)
     const result = await client.listResources()
     return result.resources
   }
 
   async listPrompts(info: SkillMcpClientInfo, context: SkillMcpServerContext): Promise<Prompt[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config)
+    const client = await this.getOrCreateClientWithRetryForTest(info, context.config)
     const result = await client.listPrompts()
     return result.prompts
   }
@@ -114,7 +114,7 @@ export class SkillMcpManager {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const client = await this.getOrCreateClientWithRetry(info, config)
+        const client = await this.getOrCreateClientWithRetryForTest(info, config)
         return await operation(client)
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
@@ -166,6 +166,13 @@ export class SkillMcpManager {
       info,
       config,
     })
+  }
+
+  async getOrCreateClientWithRetryForTest(
+    info: SkillMcpClientInfo,
+    config: ClaudeCodeMcpServer,
+  ): Promise<Client> {
+    return await this.getOrCreateClientWithRetry(info, config)
   }
 
   getConnectedServers(): string[] {

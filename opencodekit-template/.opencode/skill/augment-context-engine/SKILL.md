@@ -33,10 +33,10 @@ dependencies: []
 
 ```
 # Search a GitHub repo for authentication code
-skill_mcp(skill_name="augment-context-engine", tool_name="augment_code_search", arguments='{"repo_owner": "myorg", "repo_name": "myapp", "query": "authentication middleware that validates JWT tokens"}')
+skill_mcp(mcp_name="augment-context-engine", tool_name="augment_code_search", arguments='{"repo_owner": "myorg", "repo_name": "myapp", "query": "authentication middleware that validates JWT tokens"}')
 
 # Search a specific branch with more results
-skill_mcp(skill_name="augment-context-engine", tool_name="augment_code_search", arguments='{"repo_owner": "myorg", "repo_name": "myapp", "query": "error handling patterns", "branch": "develop", "max_results": 10}')
+skill_mcp(mcp_name="augment-context-engine", tool_name="augment_code_search", arguments='{"repo_owner": "myorg", "repo_name": "myapp", "query": "error handling patterns", "branch": "develop", "max_results": 10}')
 ```
 
 > **Tip:** Get `repo_owner` and `repo_name` from git: `git remote get-url origin`

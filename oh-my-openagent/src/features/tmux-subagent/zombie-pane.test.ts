@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, mock, test, afterAll } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, test, spyOn } from "bun:test"
 import type { TmuxConfig } from "../../config/schema"
+import type { TmuxLayout } from "../../config/schema"
 import type { ActionResult, ExecuteContext, ExecuteActionsResult } from "./action-executor"
 import type { TmuxUtilDeps } from "./manager"
 import type { TrackedSession, WindowState } from "./types"
+import type { SpawnPaneResult } from "../../shared/tmux"
+import * as actionExecutorModule from "./action-executor"
+import * as paneStateQuerierModule from "./pane-state-querier"
+import * as sharedTmuxModule from "../../shared/tmux"
 
 const mockQueryWindowState = mock<(paneId: string) => Promise<WindowState | null>>(async () => ({
   windowWidth: 220,
@@ -27,38 +32,45 @@ const mockExecuteActions = mock<(
 
 const mockIsInsideTmux = mock<() => boolean>(() => true)
 const mockGetCurrentPaneId = mock<() => string | undefined>(() => "%0")
-
-mock.module("./pane-state-querier", () => ({
-  queryWindowState: mockQueryWindowState,
-}))
-
-mock.module("./action-executor", () => ({
-  executeAction: mockExecuteAction,
-  executeActions: mockExecuteActions,
-}))
-
-mock.module("../../shared/tmux", () => ({
-  isInsideTmux: mockIsInsideTmux,
-  getCurrentPaneId: mockGetCurrentPaneId,
-  isServerRunning: mock(async () => true),
-  resetServerCheck: mock(() => {}),
-  markServerRunningInProcess: mock(() => {}),
-  getPaneDimensions: mock(async () => ({ width: 220, height: 44 })),
-  spawnTmuxPane: mock(async () => ({ success: true, paneId: "%1" })),
-  closeTmuxPane: mock(async () => ({ success: true })),
-  replaceTmuxPane: mock(async () => ({ success: true, paneId: "%1" })),
-  spawnTmuxWindow: mock(async () => ({ success: true, windowId: "@1" })),
-  spawnTmuxSession: mock(async () => ({ success: true, sessionId: "mock" })),
-  applyLayout: mock(async () => ({ success: true })),
-  enforceMainPaneWidth: mock(async () => ({ success: true })),
-  POLL_INTERVAL_BACKGROUND_MS: 10,
-  SESSION_READY_POLL_INTERVAL_MS: 10,
-  SESSION_READY_TIMEOUT_MS: 50,
-  SESSION_MISSING_GRACE_MS: 1_000,
-  SESSION_TIMEOUT_MS: 600_000,
-}))
-
-afterAll(() => { mock.restore() })
+const mockSpawnTmuxPane = mock<(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string,
+  targetPaneId?: string,
+  splitDirection?: "-h" | "-v",
+) => Promise<SpawnPaneResult>>(async () => ({ success: true, paneId: "%1" }))
+const mockReplaceTmuxPane = mock<(
+  paneId: string,
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string,
+) => Promise<SpawnPaneResult>>(async () => ({ success: true, paneId: "%1" }))
+const mockSpawnTmuxWindow = mock<(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string,
+) => Promise<SpawnPaneResult>>(async () => ({ success: true, paneId: "%1" }))
+const mockSpawnTmuxSession = mock<(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string,
+  sourcePaneId?: string,
+) => Promise<SpawnPaneResult>>(async () => ({ success: true, paneId: "%1" }))
+const mockApplyLayout = mock<(
+  tmux: string,
+  layout: TmuxLayout,
+  mainPaneSize: number,
+  deps?: { spawnCommand?: (args: string[], options: { stdout: "ignore"; stderr: "ignore" }) => { exited: Promise<number> } },
+) => Promise<void>>(async () => {})
+const mockEnforceMainPaneWidth = mock<(
+  mainPaneId: string,
+  windowWidth: number,
+  mainPaneSizeOrOptions?: number | { mainPaneSize?: number; mainPaneMinWidth?: number; agentPaneMinWidth?: number },
+) => Promise<void>>(async () => {})
 
 const mockTmuxDeps: TmuxUtilDeps = {
   isInsideTmux: mockIsInsideTmux,
@@ -69,6 +81,7 @@ function createConfig(): TmuxConfig {
   return {
     enabled: true,
     layout: "main-vertical",
+    isolation: "inline",
     main_pane_size: 60,
     main_pane_min_width: 80,
     agent_pane_min_width: 40,
@@ -185,6 +198,35 @@ describe("TmuxSessionManager zombie pane handling", () => {
     }))
     mockIsInsideTmux.mockReturnValue(true)
     mockGetCurrentPaneId.mockReturnValue("%0")
+    mockSpawnTmuxPane.mockImplementation(async () => ({ success: true, paneId: "%1" }))
+    mockReplaceTmuxPane.mockImplementation(async () => ({ success: true, paneId: "%1" }))
+    mockSpawnTmuxWindow.mockImplementation(async () => ({ success: true, paneId: "%1" }))
+    mockSpawnTmuxSession.mockImplementation(async () => ({ success: true, paneId: "%1" }))
+    mockApplyLayout.mockImplementation(async () => {})
+    mockEnforceMainPaneWidth.mockImplementation(async () => {})
+
+    spyOn(paneStateQuerierModule, "queryWindowState").mockImplementation(mockQueryWindowState)
+    spyOn(actionExecutorModule, "executeAction").mockImplementation(mockExecuteAction)
+    spyOn(actionExecutorModule, "executeActions").mockImplementation(mockExecuteActions)
+    spyOn(sharedTmuxModule, "isInsideTmux").mockImplementation(mockIsInsideTmux)
+    spyOn(sharedTmuxModule, "getCurrentPaneId").mockImplementation(mockGetCurrentPaneId)
+    spyOn(sharedTmuxModule, "isServerRunning").mockImplementation(mock(async () => true))
+    spyOn(sharedTmuxModule, "resetServerCheck").mockImplementation(mock(() => {}))
+    spyOn(sharedTmuxModule, "markServerRunningInProcess").mockImplementation(mock(() => {}))
+    spyOn(sharedTmuxModule, "getPaneDimensions").mockImplementation(
+      mock(async () => ({ paneWidth: 110, windowWidth: 220 })),
+    )
+    spyOn(sharedTmuxModule, "spawnTmuxPane").mockImplementation(mockSpawnTmuxPane)
+    spyOn(sharedTmuxModule, "closeTmuxPane").mockImplementation(mock(async () => true))
+    spyOn(sharedTmuxModule, "replaceTmuxPane").mockImplementation(mockReplaceTmuxPane)
+    spyOn(sharedTmuxModule, "spawnTmuxWindow").mockImplementation(mockSpawnTmuxWindow)
+    spyOn(sharedTmuxModule, "spawnTmuxSession").mockImplementation(mockSpawnTmuxSession)
+    spyOn(sharedTmuxModule, "applyLayout").mockImplementation(mockApplyLayout)
+    spyOn(sharedTmuxModule, "enforceMainPaneWidth").mockImplementation(mockEnforceMainPaneWidth)
+  })
+
+  afterEach(() => {
+    mock.restore()
   })
 
   test("#given session in sessions Map #when onSessionDeleted called with null window state #then session stays in Map with closePending true", async () => {

@@ -2,12 +2,13 @@ import type { PluginContext } from "./types"
 import { randomUUID } from "node:crypto"
 
 import { getMainSessionID } from "../features/claude-code-session-state"
-import { clearBoulderState } from "../features/boulder-state"
+import { clearBoulderState, readBoulderState } from "../features/boulder-state"
 import { log } from "../shared"
 import { resolveSessionAgent } from "./session-agent-resolver"
 import { parseRalphLoopArguments } from "../hooks/ralph-loop/command-arguments"
 import { ULTRAWORK_VERIFICATION_PROMISE } from "../hooks/ralph-loop/constants"
 import { readState, writeState } from "../hooks/ralph-loop/storage"
+import { appendVerifyLog, writeBeadCheckpoint } from "./bead-diagnostics"
 
 import type { CreatedHooks } from "../create-hooks"
 
@@ -53,7 +54,7 @@ export function createToolExecuteBeforeHandler(args: {
   return async (input, output): Promise<void> => {
     if (input.tool.toLowerCase() === "bash" && typeof output.args.command === "string") {
       if (output.args.command.includes("\x00")) {
-        output.args.command = output.args.command.replace(/\x00/g, "")
+        output.args.command = output.args.command.split("\x00").join("")
         log("[tool-execute-before] Stripped null bytes from bash command", {
           sessionID: input.sessionID,
           callID: input.callID,
@@ -179,7 +180,16 @@ export function createToolExecuteBeforeHandler(args: {
         hooks.stopContinuationGuard?.stop(sessionID)
         hooks.todoContinuationEnforcer?.cancelAllCountdowns()
         hooks.ralphLoop?.cancelLoop(sessionID)
-        clearBoulderState(ctx.directory)
+
+        const planName = readBoulderState(ctx.directory)?.plan_name ?? "unknown"
+        const checkpointSucceeded = writeBeadCheckpoint(ctx.directory, sessionID)
+        const clearSucceeded = clearBoulderState(ctx.directory)
+        appendVerifyLog(
+          ctx.directory,
+          sessionID,
+          checkpointSucceeded && clearSucceeded ? "PASS" : "FAIL",
+          planName,
+        )
         log("[stop-continuation] All continuation mechanisms stopped", {
           sessionID,
         })

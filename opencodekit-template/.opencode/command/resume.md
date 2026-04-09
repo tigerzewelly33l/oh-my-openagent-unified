@@ -36,7 +36,7 @@ If not on the right branch, check out the feature branch. If uncommitted changes
 Check for handoff notes in the memory system:
 
 ```typescript
-memory_read({ file: "handoffs/$ARGUMENTS" });
+memory-read({ file: "handoffs/$ARGUMENTS" });
 ```
 
 If a handoff exists, it tells you:
@@ -49,7 +49,7 @@ If a handoff exists, it tells you:
 Also search previous sessions:
 
 ```typescript
-find_sessions({ query: "$ARGUMENTS" });
+session_search({ query: "$ARGUMENTS", limit: 5 });
 ```
 
 ## Phase 4: Load Artifacts

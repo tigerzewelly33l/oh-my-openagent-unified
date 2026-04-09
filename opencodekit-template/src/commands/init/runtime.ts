@@ -1,75 +1,19 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { platform } from "node:os";
 import { join } from "node:path";
 import * as p from "@clack/prompts";
 import color from "picocolors";
 import type { InitOptions } from "../../utils/schemas.js";
+import {
+	CONFIG_BASENAME,
+	ensureCanonicalPluginRegistration,
+	refreshCanonicalBridgeConfigFromTemplate,
+} from "../bridge/runtime-contract.js";
 import type { GlobalConfigInfo, InitMode } from "./paths.js";
 
 export interface BridgeArtifactEmissionResult {
 	emitted: string[];
-}
-
-const PLUGIN_NAME = "oh-my-openagent";
-const LEGACY_PLUGIN_NAME = "oh-my-opencode";
-const CONFIG_BASENAME = "oh-my-openagent";
-
-function getCanonicalBridgeTemplatePath(templateRoot: string): string {
-	return join(templateRoot, ".opencode", `${CONFIG_BASENAME}.jsonc`);
-}
-
-function refreshCanonicalBridgeConfigFromTemplate(
-	templateRoot: string,
-	targetDir: string,
-): boolean {
-	const templateBridgeConfigPath = getCanonicalBridgeTemplatePath(templateRoot);
-	if (!existsSync(templateBridgeConfigPath)) {
-		return false;
-	}
-
-	const opencodeDir = join(targetDir, ".opencode");
-	const bridgeConfigPath = join(opencodeDir, `${CONFIG_BASENAME}.jsonc`);
-	const templateContent = readFileSync(templateBridgeConfigPath, "utf-8");
-	const existingContent = existsSync(bridgeConfigPath)
-		? readFileSync(bridgeConfigPath, "utf-8")
-		: null;
-
-	if (existingContent === templateContent) {
-		return false;
-	}
-
-	writeFileSync(bridgeConfigPath, templateContent);
-	return true;
-}
-
-function ensureCanonicalPluginRegistration(opencodeConfigPath: string): boolean {
-	const config = JSON.parse(readFileSync(opencodeConfigPath, "utf-8")) as {
-		plugin?: unknown;
-	};
-	const existingPlugins = Array.isArray(config.plugin)
-		? config.plugin.filter((value): value is string => typeof value === "string")
-		: [];
-	const canonicalPlugins = existingPlugins
-		.map((pluginName) =>
-			pluginName === LEGACY_PLUGIN_NAME ? PLUGIN_NAME : pluginName,
-		)
-		.filter((pluginName, index, values) => values.indexOf(pluginName) === index);
-
-	if (!canonicalPlugins.includes(PLUGIN_NAME)) {
-		canonicalPlugins.push(PLUGIN_NAME);
-	}
-
-	if (
-		existingPlugins.length === canonicalPlugins.length &&
-		existingPlugins.every((pluginName, index) => pluginName === canonicalPlugins[index])
-	) {
-		return false;
-	}
-
-	config.plugin = canonicalPlugins;
-	writeFileSync(opencodeConfigPath, `${JSON.stringify(config, null, 2)}\n`);
-	return true;
 }
 
 export function describeGlobalInstallTarget(globalDir: string): void {
@@ -162,7 +106,7 @@ export function emitCanonicalBridgeArtifactsScaffold(
 	const emitted: string[] = [];
 	const opencodeConfigPath = join(opencodeDir, "opencode.json");
 
-	if (refreshCanonicalBridgeConfigFromTemplate(templateRoot, targetDir)) {
+	if (refreshCanonicalBridgeConfigFromTemplate(join(templateRoot, ".opencode"), opencodeDir)) {
 		emitted.push(join(".opencode", `${CONFIG_BASENAME}.jsonc`));
 	}
 

@@ -4,10 +4,19 @@ import { log } from "../../shared/logger"
 
 import { DEFAULT_SKIP_AGENTS, HOOK_NAME } from "./constants"
 import { createTodoContinuationHandler } from "./handler"
+import {
+  registerSessionStateStore,
+  resetTodoContinuationEnforcersForTesting,
+  shutdownSessionStateStore,
+} from "./lifecycle"
 import { createSessionStateStore } from "./session-state"
 import type { TodoContinuationEnforcer, TodoContinuationEnforcerOptions } from "./types"
 
 export type { TodoContinuationEnforcer, TodoContinuationEnforcerOptions } from "./types"
+
+export function _resetTodoContinuationEnforcersForTesting(): void {
+  resetTodoContinuationEnforcersForTesting()
+}
 
 export function createTodoContinuationEnforcer(
   ctx: PluginInput,
@@ -20,6 +29,7 @@ export function createTodoContinuationEnforcer(
   } = options
 
   const sessionStateStore = createSessionStateStore()
+  registerSessionStateStore(sessionStateStore)
 
   const markRecovering = (sessionID: string): void => {
     const state = sessionStateStore.getState(sessionID)
@@ -54,6 +64,8 @@ export function createTodoContinuationEnforcer(
     markRecovering,
     markRecoveryComplete,
     cancelAllCountdowns,
-    dispose: () => sessionStateStore.shutdown(),
+    dispose: () => {
+      shutdownSessionStateStore(sessionStateStore)
+    },
   }
 }
