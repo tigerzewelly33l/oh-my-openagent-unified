@@ -55,4 +55,17 @@ function getUniqueSortedCommandNames(commandNames: string[]): string[] {
 		expect(commandNames).not.toContain("serve");
 		expect(commandNames).not.toContain("server");
 	});
+
+	it("proves slice-one runtime execution stays on the OMO CLI", () => {
+		const cliSource = readFileSync(new URL("./index.ts", import.meta.url), "utf-8");
+		const commandNames = getRegisteredCommandNames(cliSource);
+		const readme = readFileSync(new URL("../README.md", import.meta.url), "utf-8");
+
+		expect(commandNames).not.toContain("run");
+		expect(readme).toContain("The packaged CLI commands are:");
+		expect(readme).toContain("Runtime execution stays on the OMO CLI");
+		expect(readme).toContain("there is intentionally no `ock run` command in this slice");
+		expect(readme).toContain("ock init");
+		expect(readme).toContain("ock upgrade");
+	});
 });
