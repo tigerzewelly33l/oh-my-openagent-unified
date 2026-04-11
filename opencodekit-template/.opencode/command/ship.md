@@ -6,7 +6,7 @@ agent: build
 
 # Ship: $ARGUMENTS
 
-Execute PRD tasks, verify each passes, run review, close the bead.
+Execute PRD tasks, verify each passes, run review, then close the bead only after explicit user approval. `/ship` is the only authored path that closes the bead and runs `br sync --flush-only`.
 
 > **Workflow:** `/create` → `/start <id>` → **`/ship <id>`**
 >
@@ -35,16 +35,17 @@ skill({ name: "verification-before-completion" });
 - **Verify goals**: Tasks completing ≠ goals achieved (use goal-backward verification)
 - **Commit before close**: Per-task commits required, don't ship without git history
 - **Ask before closing**: Never close bead without user confirmation
+- **Keep ownership split frozen**: OMO runtime may read or reconcile attached bead state, but `/ship` remains the only close + sync path
 
 ## Available Tools
 
-| Tool      | Use When                                  |
-| --------- | ----------------------------------------- |
-| `explore` | Finding patterns in codebase, prior art   |
-| `scout`   | External research, best practices         |
-| `lsp`     | Finding symbol definitions, references    |
-| `tilth_tilth_search` | Finding code patterns |
-| `task`    | Spawning subagents for parallel execution |
+| Tool                 | Use When                                  |
+| -------------------- | ----------------------------------------- |
+| `explore`            | Finding patterns in codebase, prior art   |
+| `scout`              | External research, best practices         |
+| `lsp`                | Finding symbol definitions, references    |
+| `tilth_tilth_search` | Finding code patterns                     |
+| `task`               | Spawning subagents for parallel execution |
 
 ## Phase 1: Guards
 
@@ -201,6 +202,8 @@ Follow the [Verification Protocol](../skill/verification-before-completion/refer
 - All 4 gates must pass before proceeding to commit/push
 - Also run PRD `Verify:` commands
 
+`/verify` remains the only command that writes `.beads/verify.log`. `/ship` consumes fresh verification evidence but must not create or update that cache itself.
+
 ## Phase 5: Review
 
 Load and run the review skill:
@@ -290,6 +293,8 @@ If confirmed:
 br close $ARGUMENTS --reason "Shipped: all PRD tasks pass, verification + review passed"
 br sync --flush-only
 ```
+
+No other authored command should perform this close + sync sequence. If approval is not given, stop and report current verified status without closing the bead.
 
 Record significant learnings with `/compound $ARGUMENTS` after closing.
 

@@ -1,18 +1,23 @@
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import * as p from "@clack/prompts";
-import { parse } from "jsonc-parser";
 import color from "picocolors";
-import { z } from "zod";
-import { getBridgeHealthReport } from "../utils/bridge-diagnostics.js";
 import { requireOpencodePath, showWarning } from "../utils/errors.js";
+import {
+	getBeadsRuntimeHealthReport,
+	getBridgeHealthReport,
+} from "./bridge-diagnostics.js";
 
-const StatusConfigSchema = z.object({
-	mcp: z.record(z.string(), z.unknown()).optional(),
-}).catchall(z.unknown());
+function renderHealthLevel(level: "OK" | "WARN" | "ERROR"): string {
+	return level === "OK"
+		? color.green(level)
+		: level === "WARN"
+			? color.yellow(level)
+			: color.red(level);
+}
 
 export async function statusCommand() {
-	const quiet = process.argv.includes("--quiet");
+	if (process.argv.includes("--quiet")) return;
 
 	const cwd = process.cwd();
 	const opencodeDir = requireOpencodePath();
@@ -23,10 +28,12 @@ export async function statusCommand() {
 
 	const projectName = basename(cwd);
 	const bridgeHealth = getBridgeHealthReport(opencodeDir);
+	const beadsRuntimeHealth = getBeadsRuntimeHealthReport({
+		projectDir: cwd,
+		opencodeDir,
+	});
 
-	if (!quiet) {
-		p.intro(color.bgCyan(color.black(` ${projectName} `)));
-	}
+	p.intro(color.bgCyan(color.black(` ${projectName} `)));
 
 	const agentDir = join(opencodeDir, "agent");
 	let agentNames: string[] = [];
@@ -64,65 +71,64 @@ export async function statusCommand() {
 	let mcpCount = 0;
 	if (existsSync(configPath)) {
 		try {
-			const configContent = readFileSync(configPath, "utf-8");
-			const parseErrors: NonNullable<Parameters<typeof parse>[1]> = [];
-			const parsedConfig = parse(configContent, parseErrors);
-			if (parseErrors.length > 0) {
-				throw new Error(`Invalid JSONC in ${configPath}`);
-			}
-			const config = StatusConfigSchema.parse(parsedConfig);
-			if (config.mcp) {
-				mcpCount = Object.keys(config.mcp).length;
-			}
-		} catch (error) {
-			if (!quiet) {
-				showWarning(
-					"Invalid opencode.json",
-					error instanceof Error ? error.message : "Failed to parse OpenCode config",
-				)
-			}
+			const config = JSON.parse(readFileSync(configPath, "utf-8"));
+			mcpCount = Object.keys(config.mcp || {}).length;
+		} catch {
+			// Ignore
 		}
 	}
 
-	if (!quiet) {
-		console.log();
-		console.log(
-			`  ${color.bold("Agents")}     ${color.cyan(String(agentNames.length))}`,
-		);
-		if (agentNames.length > 0) {
-			console.log(`             ${color.dim(agentNames.join(", "))}`);
+	console.log();
+	console.log(
+		`  ${color.bold("Agents")}     ${color.cyan(String(agentNames.length))}`,
+	);
+	if (agentNames.length > 0) {
+		console.log(`             ${color.dim(agentNames.join(", "))}`);
+	}
+	console.log();
+	console.log(
+		`  ${color.bold("Skills")}     ${color.cyan(String(skillCount))}`,
+	);
+	console.log();
+	console.log(
+		`  ${color.bold("Commands")}   ${color.cyan(String(commandCount))}`,
+	);
+	console.log();
+	console.log(`  ${color.bold("Tools")}      ${color.cyan(String(toolCount))}`);
+	console.log();
+	console.log(`  ${color.bold("MCP")}        ${color.cyan(String(mcpCount))}`);
+	console.log();
+	console.log(
+		`  ${color.bold("Bridge Health")}  ${color.cyan(bridgeHealth.level)}`,
+	);
+	console.log();
+
+	if (bridgeHealth.level !== "OK") {
+		for (const diagnostic of bridgeHealth.diagnostics) {
+			console.log(`  ${diagnostic.message}`);
 		}
 		console.log();
-		console.log(
-			`  ${color.bold("Skills")}     ${color.cyan(String(skillCount))}`,
-		);
-		console.log();
-		console.log(
-			`  ${color.bold("Commands")}   ${color.cyan(String(commandCount))}`,
-		);
-		console.log();
-		console.log(`  ${color.bold("Tools")}      ${color.cyan(String(toolCount))}`);
-		console.log();
-		console.log(`  ${color.bold("MCP")}        ${color.cyan(String(mcpCount))}`);
-		console.log();
-		console.log(`  ${color.bold("Bridge Health")}  ${color.cyan(bridgeHealth.level)}`);
-		console.log();
+	}
 
-		if (bridgeHealth.level !== "OK") {
-			for (const diagnostic of bridgeHealth.diagnostics) {
-				console.log(`  ${diagnostic.message}`);
+	console.log(
+		`  ${color.bold("Beads Runtime")}  ${renderHealthLevel(beadsRuntimeHealth.level)}`,
+	);
+	for (const check of beadsRuntimeHealth.checks) {
+		console.log(
+			`  ${color.dim("•")} ${color.bold(check.name)}  ${renderHealthLevel(check.level)}`,
+		);
+		console.log(`    ${check.message}`);
+		if (check.details && check.details.length > 0) {
+			for (const detail of check.details.slice(0, 3)) {
+				console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
 			}
-			console.log();
 		}
 	}
+	console.log();
 
 	if (!existsSync(join(opencodeDir, "node_modules"))) {
-		if (!quiet) {
-			showWarning("Dependencies not installed", "cd .opencode && npm install");
-		}
+		showWarning("Dependencies not installed", "cd .opencode && npm install");
 	}
 
-	if (!quiet) {
-		p.outro(color.dim(".opencode/"));
-	}
+	p.outro(color.dim(".opencode/"));
 }

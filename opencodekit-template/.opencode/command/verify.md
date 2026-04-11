@@ -6,7 +6,7 @@ agent: review
 
 # Verify: $ARGUMENTS
 
-Check implementation against PRD before shipping.
+Check implementation against PRD before shipping. `/verify` is the only authored command that writes `.beads/verify.log`.
 
 ## Load Skills
 
@@ -123,6 +123,8 @@ echo "$CURRENT_STAMP $(date -u +%Y-%m-%dT%H:%M:%SZ) PASS" >> .beads/verify.log
 ```
 
 If `--fix` flag provided, run the project's auto-fix command (e.g., `npm run lint:fix`, `ruff check --fix`, `cargo clippy --fix`).
+
+No other authored command should append PASS/FAIL markers to `.beads/verify.log`. Other workflows may read verification status, but `/verify` remains the sole writer.
 
 ## Phase 4: Coherence (skip with --quick)
 

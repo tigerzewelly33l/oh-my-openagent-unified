@@ -73,9 +73,9 @@ git commit -m "WIP: $ARGUMENTS - [brief description of where you stopped]"
 Write the handoff to the memory system:
 
 ```typescript
-memory_update({
-  file: "handoffs/$ARGUMENTS",
-  content: `# Handoff: $ARGUMENTS
+memory-update({
+    file: "handoffs/$ARGUMENTS",
+    content: `# Handoff: $ARGUMENTS
 
 **Date:** [timestamp]
 **Branch:** [from git branch]
@@ -105,7 +105,7 @@ memory_update({
 
 Resume with: \`/resume $ARGUMENTS\`
 `,
-  mode: "replace",
+    mode: "replace",
 });
 ```
 
@@ -127,11 +127,15 @@ observation({
 
 ---
 
-## Phase 5: Sync
+## Phase 5: Leave Bead State Unchanged
 
-```bash
-br sync --flush-only
-```
+Do not close the bead or flush bead state from `/handoff`.
+
+`/handoff` is for saving context only. Keep the ownership split frozen:
+
+- `/ship` remains the only authored close + sync path
+- `/verify` remains the only authored command that writes `.beads/verify.log`
+- `/handoff` must not change bead status or flush bead state
 
 ---
 

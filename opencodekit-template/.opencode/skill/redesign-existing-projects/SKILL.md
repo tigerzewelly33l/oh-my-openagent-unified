@@ -1,9 +1,22 @@
 ---
 name: redesign-existing-projects
 description: Use when upgrading an existing website or app's visual design to premium quality. Audits current design, identifies generic AI patterns, applies high-end standards without breaking functionality. MUST load before any design overhaul of existing projects.
+version: 1.0.0
+tags: [ui, design]
+dependencies: []
 ---
 
 # Redesign Skill
+
+## When to Use
+
+- Upgrading an existing website or app to a more premium visual standard.
+- Auditing a current UI for generic AI patterns, weak states, and low-quality defaults before redesigning.
+
+## When NOT to Use
+
+- Greenfield projects where there is no existing UI to audit or preserve.
+- Backend-only work or purely functional bug fixes with no design-change intent.
 
 ## How This Works
 

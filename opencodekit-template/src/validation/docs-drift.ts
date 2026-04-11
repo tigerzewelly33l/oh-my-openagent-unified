@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 interface DriftIssue {
@@ -29,17 +29,7 @@ function collectMarkdownFilesRecursive(dir: string): string[] {
 	const files: string[] = [];
 	for (const entry of readdirSync(dir).sort()) {
 		const fullPath = join(dir, entry);
-		let stats: ReturnType<typeof lstatSync>;
-		try {
-			stats = lstatSync(fullPath);
-		} catch {
-			continue;
-		}
-
-		if (stats.isSymbolicLink()) {
-			continue;
-		}
-
+		const stats = statSync(fullPath);
 		if (stats.isDirectory()) {
 			files.push(...collectMarkdownFilesRecursive(fullPath));
 			continue;
@@ -212,12 +202,8 @@ function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
 
 	for (const filePath of targetFiles) {
 		const content = read(filePath);
-		const legacySkillNameMatches = Array.from(
-			content.matchAll(
-				/skill_mcp\s*\(\s*(?:skill_name\s*=|\{[^)]*\bskill_name\s*:)/g,
-			),
-		);
-		if (legacySkillNameMatches.length > 0) {
+		const legacySkillNameMatches = content.match(/skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/g);
+		if (legacySkillNameMatches && legacySkillNameMatches.length > 0) {
 			issues.push({
 				rule: "legacy-skill-mcp-syntax",
 				message: `${filePath} still contains legacy skill_mcp skill_name syntax`,
@@ -225,19 +211,13 @@ function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
 			});
 		}
 
-		const deprecatedSurfaceMatches = Array.from(
-			content.matchAll(/skill_mcp_status|skill_mcp_disconnect/g),
-		);
-		if (deprecatedSurfaceMatches.length === 0) {
+		const deprecatedSurfaceMatches = content.match(/skill_mcp_status|skill_mcp_disconnect/g);
+		if (!deprecatedSurfaceMatches || deprecatedSurfaceMatches.length === 0) {
 			continue;
 		}
 
 		const mentionsAreExplicitlyDeprecated = deprecatedSurfaceMatches.every((match) => {
-			const index = match.index ?? -1;
-			if (index < 0) {
-				return false;
-			}
-
+			const index = content.indexOf(match);
 			const context = content.slice(Math.max(0, index - 120), Math.min(content.length, index + 160)).toLowerCase();
 			return context.includes("deprecated") || context.includes("unsupported");
 		});

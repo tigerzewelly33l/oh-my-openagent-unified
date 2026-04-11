@@ -1,6 +1,12 @@
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { z } from "zod";
+
+export type {
+	BeadsRuntimeCheck,
+	BeadsRuntimeHealthLevel,
+	BeadsRuntimeHealthReport,
+} from "./beads-runtime-diagnostics.js";
+export { getBeadsRuntimeHealthReport } from "./beads-runtime-diagnostics.js";
 
 const CANONICAL_PLUGIN_NAME = "oh-my-openagent";
 const LEGACY_PLUGIN_NAME = "oh-my-opencode";
@@ -8,12 +14,10 @@ const CANONICAL_CONFIG_BASENAME = "oh-my-openagent";
 const LEGACY_CONFIG_BASENAME = "oh-my-opencode";
 
 const LEGACY_SESSION_PATTERN = /\b(find_sessions|read_session)\b/;
-const LEGACY_SKILL_MCP_PATTERN = /skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/;
-const DEPRECATED_SKILL_MCP_SURFACE_PATTERN = /skill_mcp_status|skill_mcp_disconnect/;
-
-const OpencodeConfigSchema = z.object({
-	plugin: z.array(z.string()).optional(),
-});
+const LEGACY_SKILL_MCP_PATTERN =
+	/skill_mcp\(skill_name=|\(skill_name\s*=|skill_name\s*:/;
+const DEPRECATED_SKILL_MCP_SURFACE_PATTERN =
+	/skill_mcp_status|skill_mcp_disconnect/;
 
 export type BridgeHealthLevel = "OK" | "WARN" | "ERROR";
 
@@ -40,17 +44,18 @@ function readPluginEntries(opencodeDir: string): string[] {
 		return [];
 	}
 
-	const rawConfig = readFileSync(configPath, "utf-8").trim();
-	if (rawConfig.length === 0) {
+	try {
+		const parsed = JSON.parse(readFileSync(configPath, "utf-8")) as {
+			plugin?: unknown;
+		};
+		return Array.isArray(parsed.plugin)
+			? parsed.plugin.filter(
+					(value): value is string => typeof value === "string",
+				)
+			: [];
+	} catch {
 		return [];
 	}
-
-	const parsed = OpencodeConfigSchema.safeParse(JSON.parse(rawConfig));
-	if (!parsed.success) {
-		throw new Error(`Invalid .opencode/opencode.json plugin configuration at ${configPath}`);
-	}
-
-	return parsed.data.plugin ?? [];
 }
 
 function detectConfigBasenameState(opencodeDir: string): {
@@ -77,17 +82,7 @@ function collectMarkdownFilesRecursive(dir: string): string[] {
 	const results: string[] = [];
 	for (const entry of readdirSync(dir).sort()) {
 		const fullPath = join(dir, entry);
-		let stats: ReturnType<typeof lstatSync>;
-		try {
-			stats = lstatSync(fullPath);
-		} catch {
-			continue;
-		}
-
-		if (stats.isSymbolicLink()) {
-			continue;
-		}
-
+		const stats = statSync(fullPath);
 		if (stats.isDirectory()) {
 			results.push(...collectMarkdownFilesRecursive(fullPath));
 			continue;
@@ -129,14 +124,16 @@ export function getBridgeHealthReport(opencodeDir: string): BridgeHealthReport {
 	if (!hasPluginEntry(pluginEntries, CANONICAL_PLUGIN_NAME)) {
 		diagnostics.push({
 			level: "ERROR",
-			message: 'BRIDGE ERROR: canonical plugin entry "oh-my-openagent" missing from .opencode/opencode.json',
+			message:
+				'BRIDGE ERROR: canonical plugin entry "oh-my-openagent" missing from .opencode/opencode.json',
 		});
 	}
 
 	if (legacy.length > 0 && canonical.length > 0) {
 		diagnostics.push({
 			level: "WARN",
-			message: "BRIDGE WARNING: both canonical and legacy runtime config basenames exist; OMO currently loads canonical first",
+			message:
+				"BRIDGE WARNING: both canonical and legacy runtime config basenames exist; OMO currently loads canonical first",
 			details: [...canonical, ...legacy],
 		});
 	}
@@ -144,9 +141,12 @@ export function getBridgeHealthReport(opencodeDir: string): BridgeHealthReport {
 	if (hasPluginEntry(pluginEntries, LEGACY_PLUGIN_NAME)) {
 		diagnostics.push({
 			level: "WARN",
-			message: "BRIDGE WARNING: legacy runtime plugin entries remain in .opencode/opencode.json",
+			message:
+				"BRIDGE WARNING: legacy runtime plugin entries remain in .opencode/opencode.json",
 			details: pluginEntries.filter(
-				(entry) => entry === LEGACY_PLUGIN_NAME || entry.startsWith(`${LEGACY_PLUGIN_NAME}@`),
+				(entry) =>
+					entry === LEGACY_PLUGIN_NAME ||
+					entry.startsWith(`${LEGACY_PLUGIN_NAME}@`),
 			),
 		});
 	}
@@ -155,12 +155,15 @@ export function getBridgeHealthReport(opencodeDir: string): BridgeHealthReport {
 	if (legacyAuthoredFiles.length > 0) {
 		diagnostics.push({
 			level: "WARN",
-			message: "BRIDGE WARNING: preserved project content still references legacy runtime surfaces",
+			message:
+				"BRIDGE WARNING: preserved project content still references legacy runtime surfaces",
 			details: legacyAuthoredFiles,
 		});
 	}
 
-	const level: BridgeHealthLevel = diagnostics.some((diagnostic) => diagnostic.level === "ERROR")
+	const level: BridgeHealthLevel = diagnostics.some(
+		(diagnostic) => diagnostic.level === "ERROR",
+	)
 		? "ERROR"
 		: diagnostics.length > 0
 			? "WARN"

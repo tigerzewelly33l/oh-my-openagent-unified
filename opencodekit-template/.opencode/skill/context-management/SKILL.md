@@ -2,7 +2,7 @@
 name: context-management
 description: Unified protocol for context health and session lifecycle management using DCP tools, thresholds, handoff, resume workflows, and post-compaction restoration.
 version: 3.0.0
-tags: [context, workflow, session]
+tags: [context, workflow, documentation]
 dependencies: []
 ---
 
@@ -19,6 +19,13 @@ Use this skill to keep context high-signal while preserving edit safety and exec
 - You are preparing `/handoff` or resuming prior work
 - You need deterministic restoration after compaction
 - You need reusable summary templates for exploration/implementation/debugging
+
+## When NOT to Use
+
+- You only need a single factual lookup or one small file read
+- The current phase is still actively changing and the raw context is needed for immediate edits
+- You are trying to replace verification or code review with summarization
+- Context pressure is low and no closed chapter exists yet
 
 ## Core Principle
 
@@ -70,7 +77,7 @@ Do not sweep active material needed for immediate edits.
 2. Run `/dcp context`
 3. Rehydrate prior state only if needed:
    - `session_search({ query, limit })`
-   - `session_read({ session_id, focus })`
+   - `session_read({ session_id, limit })`
    - `memory-search({ query })` / `memory-read({ file })`
 4. Verify git position before edits
 
@@ -334,7 +341,7 @@ If compaction was heavy, recover nuance using:
 - `memory-search({ query, limit: 3 })`
 - `memory-read({ file })`
 - `session_search({ query, limit })`
-- `session_read({ session_id, focus })`
+- `session_read({ session_id, limit })`
 
 Why: restores rationale/constraints often missing from short summaries.
 

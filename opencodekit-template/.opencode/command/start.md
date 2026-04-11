@@ -6,7 +6,7 @@ agent: build
 
 # Start: $ARGUMENTS
 
-Claim a task and prepare workspace. Bridge between specification (`/create`) and implementation (`/ship`).
+Claim a task and prepare workspace. Bridge between specification (`/create`) and implementation (`/ship`). `/start` owns the bead claim step, then attaches the claimed bead to OMO runtime before any runtime work begins.
 
 > **Workflow:** `/create` → **`/start <id>`** → `/ship <id>`
 >
@@ -68,6 +68,20 @@ Verify `prd.md` exists and has real content (not just placeholders). If missing 
 br update $ARGUMENTS --status in_progress
 ```
 
+Only proceed when the claim succeeds. After the successful claim, hand the explicit bead choice to OMO runtime before any PRD conversion, planning, or implementation work begins:
+
+```typescript
+beads_runtime_attach({
+  bead_id: "$ARGUMENTS",
+  source_command: "start",
+  worktree_path: "<resolved worktree path or project root>",
+  branch_name: "<current branch if known>",
+  worktree_name: "<current worktree if known>",
+});
+```
+
+If `beads_runtime_attach` fails, stop immediately and report the failure instead of continuing to task conversion or implementation. The attach step must remain fail-closed, must not infer bead identity from free-form text, and does not replace OCK ownership of claim or later close/sync actions.
+
 ## Phase 4: Prepare Workspace
 
 Ask user how to handle workspace:
@@ -124,6 +138,8 @@ skill({ name: "using-git-worktrees" });
 ```
 
 **If current branch:** Continue without branch creation.
+
+Re-run `beads_runtime_attach(...)` after workspace preparation if the resolved worktree path or branch metadata changed from the post-claim values. Keep the same explicit `bead_id` and `source_command: "start"`; this only refreshes persisted metadata for the already-claimed continuation.
 
 ## Phase 5: Convert PRD to Tasks
 

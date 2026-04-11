@@ -1,9 +1,22 @@
 ---
 name: industrial-brutalist-ui
 description: Use INSTEAD OF design-taste-frontend when user requests brutalist, military-terminal, or raw mechanical aesthetics. Swiss typographic print meets utilitarian color. For data-heavy dashboards or editorial sites needing declassified-blueprint energy.
+version: 1.0.0
+tags: [ui, design]
+dependencies: []
 ---
 
 # SKILL: Industrial Brutalism & Tactical Telemetry UI
+
+## When to Use
+
+- The user asks for brutalist, tactical, terminal, industrial, or blueprint-inspired UI.
+- Designing data-dense dashboards, editorial systems, or interfaces that should feel rigid and mechanical.
+
+## When NOT to Use
+
+- Soft, playful, consumer-friendly, or accessibility-first visual directions that need warmth over severity.
+- Projects where conventional rounded, friendly UI is an explicit requirement.
 
 ## 1. Skill Meta
 **Name:** Industrial Brutalism & Tactical Telemetry Interface Engineering

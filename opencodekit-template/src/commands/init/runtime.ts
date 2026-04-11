@@ -101,12 +101,19 @@ export function ensureScaffoldDirectory(targetDir: string, mode: InitMode): void
 export function emitCanonicalBridgeArtifactsScaffold(
 	templateRoot: string,
 	targetDir: string,
+	options?: {
+		beadsRuntimeEnabled?: boolean;
+	},
 ): BridgeArtifactEmissionResult {
 	const opencodeDir = join(targetDir, ".opencode");
 	const emitted: string[] = [];
 	const opencodeConfigPath = join(opencodeDir, "opencode.json");
 
-	if (refreshCanonicalBridgeConfigFromTemplate(join(templateRoot, ".opencode"), opencodeDir)) {
+	if (
+		refreshCanonicalBridgeConfigFromTemplate(join(templateRoot, ".opencode"), opencodeDir, {
+			beadsRuntimeEnabled: options?.beadsRuntimeEnabled ?? false,
+		})
+	) {
 		emitted.push(join(".opencode", `${CONFIG_BASENAME}.jsonc`));
 	}
 

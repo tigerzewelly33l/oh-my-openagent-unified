@@ -6,7 +6,7 @@ agent: build
 
 # Resume: $ARGUMENTS
 
-Pick up where a previous session left off. Recover context, verify state, continue.
+Pick up where a previous session left off. Recover context, verify state, continue. `/resume` is the claim-and-reattach path for an existing bead continuation.
 
 ## Load Skills
 
@@ -76,6 +76,20 @@ Check if significant changes happened on main. If so, consider rebasing. Don't b
 ```bash
 br update $ARGUMENTS --status in_progress
 ```
+
+Only continue when that in-progress claim/update succeeds. Immediately hand the explicit bead selection to OMO runtime before loading more runtime work:
+
+```typescript
+beads_runtime_attach({
+  bead_id: "$ARGUMENTS",
+  source_command: "resume",
+  worktree_path: "<resolved worktree path or project root>",
+  branch_name: "<current branch if known>",
+  worktree_name: "<current worktree if known>",
+});
+```
+
+If attach validation fails, stop and report the attach error. Do not continue into `/ship` or `/plan` with a detached continuation. OMO runtime attach here is continuation metadata only, not a transfer of close or sync ownership.
 
 Report:
 
