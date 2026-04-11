@@ -9,3 +9,7 @@
 
 2026-04-08
 - `lsp_diagnostics` briefly reported a stale one-argument signature for `emitCanonicalBridgeArtifactsScaffold()` after the seam changed to accept `templateRoot`; project `npm run typecheck` and the targeted Vitest regression confirmed the workspace code was correct.
+
+2026-04-09
+- Final-wave code-quality review surfaced a duplicate `agent [action]` registration in `opencodekit-template/src/index.ts` that the Task 7 contract test failed to catch because it deduplicated command names before asserting the expected surface. Resolved by removing the duplicate registration and updating the test to fail when duplicate command names exist.
+- Final-wave manual-QA review also showed that approval should rely on the actually executed overlap smoke with `XDG_CONFIG_HOME` set, not on older stale reviewer context that missed the corrected command. The rerun verification now includes the explicit env override in the executed smoke command.

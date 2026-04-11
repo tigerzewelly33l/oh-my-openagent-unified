@@ -131,9 +131,9 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - Local rule: `/work/ock-omo-system/opencodekit-template/src/AGENTS.md:18-31` - keep command behavior in `src/commands/`, preserve CLI/template split.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] `init.ts` delegates slice-specific bridge logic to extracted modules rather than adding more large in-file branches.
-  - [ ] Existing `ock init` options and license-gate behavior remain intact.
-  - [ ] LSP diagnostics for the touched OCK command subtree report no new errors.
+  - [x] `init.ts` delegates slice-specific bridge logic to extracted modules rather than adding more large in-file branches.
+  - [x] Existing `ock init` options and license-gate behavior remain intact.
+  - [x] LSP diagnostics for the touched OCK command subtree report no new errors.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -172,9 +172,9 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - CLI entry: `/work/ock-omo-system/opencodekit-template/src/index.ts:159-177` - `ock upgrade` command options and license gate.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] `upgrade.ts` delegates bridge-related ownership decisions to extracted modules.
-  - [ ] Existing preserve/prune behavior remains stable except where explicitly changed for bridge-controlled files.
-  - [ ] LSP diagnostics for the touched OCK command subtree report no new errors.
+  - [x] `upgrade.ts` delegates bridge-related ownership decisions to extracted modules.
+  - [x] Existing preserve/prune behavior remains stable except where explicitly changed for bridge-controlled files.
+  - [x] LSP diagnostics for the touched OCK command subtree report no new errors.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -212,9 +212,9 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - OCK init selective copy: `/work/ock-omo-system/opencodekit-template/src/commands/init.ts:186-225`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] Fresh OCK-generated projects emit only canonical `oh-my-openagent` plugin/config identifiers.
-  - [ ] No fresh-install path emits a new `oh-my-opencode` project config file.
-  - [ ] OMO legacy-read compatibility is unchanged for pre-existing repos.
+  - [x] Fresh OCK-generated projects emit only canonical `oh-my-openagent` plugin/config identifiers.
+  - [x] No fresh-install path emits a new `oh-my-opencode` project config file.
+  - [x] OMO legacy-read compatibility is unchanged for pre-existing repos.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -251,10 +251,10 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - Identity constants: `/work/ock-omo-system/oh-my-openagent/src/shared/plugin-identity.ts:1-4`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] OMO tests cover canonical `.opencode/oh-my-openagent.jsonc` load.
-  - [ ] OMO tests cover legacy `.opencode/oh-my-opencode.jsonc` load.
-  - [ ] OMO tests prove canonical wins when both exist.
-  - [ ] OMO tests prove `mcp_env_allowlist` comes from user config, not project config.
+  - [x] OMO tests cover canonical `.opencode/oh-my-openagent.jsonc` load.
+  - [x] OMO tests cover legacy `.opencode/oh-my-opencode.jsonc` load.
+  - [x] OMO tests prove canonical wins when both exist.
+  - [x] OMO tests prove `mcp_env_allowlist` comes from user config, not project config.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -293,9 +293,9 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - OCK orphan/prune logic: `/work/ock-omo-system/opencodekit-template/src/commands/upgrade.ts:280-291`, `/work/ock-omo-system/opencodekit-template/src/commands/upgrade.ts:439-485`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] `ock init --project-only` still creates canonical bridge-controlled files even when shared dirs are skipped.
-  - [ ] `ock upgrade --force --prune-all` preserves canonical bridge-controlled files and removes obsolete bridge-owned files.
-  - [ ] Bridge-controlled files are not placed solely inside preserved user/hybrid directories.
+  - [x] `ock init --project-only` still creates canonical bridge-controlled files even when shared dirs are skipped.
+  - [x] `ock upgrade --force --prune-all` preserves canonical bridge-controlled files and removes obsolete bridge-owned files.
+  - [x] Bridge-controlled files are not placed solely inside preserved user/hybrid directories.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -332,10 +332,10 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - OCK build/test commands: `/work/ock-omo-system/opencodekit-template/package.json:35-49`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] OCK tests cover canonical bridge config emission.
-  - [ ] OCK tests cover project-only + global-config overlap behavior.
-  - [ ] OCK tests cover upgrade prune behavior for obsolete bridge-owned files.
-  - [ ] OCK test suite passes in the local repo.
+  - [x] OCK tests cover canonical bridge config emission.
+  - [x] OCK tests cover project-only + global-config overlap behavior.
+  - [x] OCK tests cover upgrade prune behavior for obsolete bridge-owned files.
+  - [x] OCK test suite passes in the local repo.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -372,8 +372,8 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - OCK CLI entrypoint: `/work/ock-omo-system/opencodekit-template/src/index.ts:35-177`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] If a wrapper is added, it preserves OMO run contract semantics for forwarded args, JSON mode, SIGINT, and `--port` + `--attach` exclusivity.
-  - [ ] If no wrapper is added, the implementation documents and tests that slice-one runtime proof uses OCK bootstrap plus OMO runtime execution directly.
+  - [x] If a wrapper is added, it preserves OMO run contract semantics for forwarded args, JSON mode, SIGINT, and `--port` + `--attach` exclusivity.
+  - [x] If no wrapper is added, the implementation documents and tests that slice-one runtime proof uses OCK bootstrap plus OMO runtime execution directly.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -410,10 +410,10 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - MVP contract: `/work/ock-omo-system/MVP.md:79-148`, `/work/ock-omo-system/MVP.md:210-387`.
 
   **Acceptance Criteria** (agent-executable only):
-  - [ ] All OCK verification commands pass.
-  - [ ] All OMO verification commands pass.
-  - [ ] Temp-dir smoke tests for init, project-only overlap, and upgrade prune all pass.
-  - [ ] The resulting project artifacts match the canonical OMO bridge contract.
+  - [x] All OCK verification commands pass.
+  - [x] All OMO verification commands pass.
+  - [x] Temp-dir smoke tests for init, project-only overlap, and upgrade prune all pass.
+  - [x] The resulting project artifacts match the canonical OMO bridge contract.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -436,10 +436,10 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
-- [ ] F1. Plan Compliance Audit — oracle
-- [ ] F2. Code Quality Review — unspecified-high
-- [ ] F3. Real Manual QA — unspecified-high
-- [ ] F4. Scope Fidelity Check — deep
+- [x] F1. Plan Compliance Audit — oracle
+- [x] F2. Code Quality Review — unspecified-high
+- [x] F3. Real Manual QA — unspecified-high
+- [x] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
 - Do not commit automatically.

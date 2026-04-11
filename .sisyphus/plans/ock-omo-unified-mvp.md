@@ -178,9 +178,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - Research: `/work/ock-omo-system/AGENTS.md:8-16` - confirms the current state is two separate products, so MVP doc must explain unification deliberately.
 
   **Acceptance Criteria**:
-  - [ ] `/work/ock-omo-system/MVP.md` exists with the exact heading structure listed in the plan Definition of Done.
-  - [ ] The decision ledger explicitly states all five user-confirmed decisions without contradiction.
-  - [ ] No line in `MVP.md` contains `TBD`, `[DECISION NEEDED`, or equivalent placeholders.
+  - [x] `/work/ock-omo-system/MVP.md` exists with the exact heading structure listed in the plan Definition of Done.
+  - [x] The decision ledger explicitly states all five user-confirmed decisions without contradiction.
+  - [x] No line in `MVP.md` contains `TBD`, `[DECISION NEEDED`, or equivalent placeholders.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -218,9 +218,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - Risk guidance: `/work/ock-omo-system/opencodekit-template/.opencode/memory/research/effectiveness-audit.md:171-197`.
 
   **Acceptance Criteria**:
-  - [ ] Every required capability row exists in the matrix.
-  - [ ] Every row has exactly one MVP owner and a non-empty bridge column.
-  - [ ] No row uses vague ownership terms like “both”, “hybrid”, or “shared runtime” without a narrow explanatory clause.
+  - [x] Every required capability row exists in the matrix.
+  - [x] Every row has exactly one MVP owner and a non-empty bridge column.
+  - [x] No row uses vague ownership terms like “both”, “hybrid”, or “shared runtime” without a narrow explanatory clause.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -260,9 +260,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - Workspace split guardrail: `/work/ock-omo-system/AGENTS.md:27-47`.
 
   **Acceptance Criteria**:
-  - [ ] `MVP.md` states one public entry (`ock`) and one canonical runtime plugin identity (`oh-my-openagent`).
-  - [ ] `MVP.md` explicitly preserves legacy `oh-my-opencode` compatibility during MVP.
-  - [ ] `MVP.md` states that MVP product unification does not require root toolchain unification.
+  - [x] `MVP.md` states one public entry (`ock`) and one canonical runtime plugin identity (`oh-my-openagent`).
+  - [x] `MVP.md` explicitly preserves legacy `oh-my-opencode` compatibility during MVP.
+  - [x] `MVP.md` states that MVP product unification does not require root toolchain unification.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -301,9 +301,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - OCK Rust-oriented formatting/task hint: `/work/ock-omo-system/opencodekit-template/.opencode/opencode.json:46-49` and user-confirmed requirement in draft context.
 
   **Acceptance Criteria**:
-  - [ ] Runtime / Toolchain Matrix includes Node/npm, Bun, and Rust columns or equivalent explicit assignments.
-  - [ ] `MVP.md` explicitly states “one scheduler” or equivalent language making OMO the orchestration owner.
-  - [ ] Rust responsibilities include execution semantics but exclude orchestration ownership.
+  - [x] Runtime / Toolchain Matrix includes Node/npm, Bun, and Rust columns or equivalent explicit assignments.
+  - [x] `MVP.md` explicitly states “one scheduler” or equivalent language making OMO the orchestration owner.
+  - [x] Rust responsibilities include execution semantics but exclude orchestration ownership.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -343,9 +343,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - OCK command assumptions: `/work/ock-omo-system/opencodekit-template/.opencode/command/plan.md:17-23`, `/work/ock-omo-system/opencodekit-template/.opencode/command/ship.md:15-20`.
 
   **Acceptance Criteria**:
-  - [ ] `MVP.md` states project-vs-builtin precedence for commands and skills.
-  - [ ] `MVP.md` explains how OCK agent names/tool expectations are preserved or mapped into OMO runtime behavior.
-  - [ ] `MVP.md` includes a specific stance on session tools and skill-MCP bridge ownership.
+  - [x] `MVP.md` states project-vs-builtin precedence for commands and skills.
+  - [x] `MVP.md` explains how OCK agent names/tool expectations are preserved or mapped into OMO runtime behavior.
+  - [x] `MVP.md` includes a specific stance on session tools and skill-MCP bridge ownership.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -382,9 +382,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - OMO legacy/canonical config handling: `/work/ock-omo-system/oh-my-openagent/src/plugin-config.ts:168-254`.
 
   **Acceptance Criteria**:
-  - [ ] `MVP.md` documents fresh install, existing OCK, and existing OMO migration paths.
-  - [ ] `MVP.md` explicitly discusses preserved directories and skipped global-config directories.
-  - [ ] `MVP.md` defines where bridge-managed files live and why they remain upgradeable.
+  - [x] `MVP.md` documents fresh install, existing OCK, and existing OMO migration paths.
+  - [x] `MVP.md` explicitly discusses preserved directories and skipped global-config directories.
+  - [x] `MVP.md` defines where bridge-managed files live and why they remain upgradeable.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -422,9 +422,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - Overlap-risk framing: `/work/ock-omo-system/opencodekit-template/.opencode/memory/research/effectiveness-audit.md:171-197`, `/work/ock-omo-system/opencodekit-template/.opencode/memory/research/context-management-analysis.md:75-83`, `/work/ock-omo-system/opencodekit-template/.opencode/memory/research/context-management-analysis.md:126-163`.
 
   **Acceptance Criteria**:
-  - [ ] `MVP.md` is coherent narrative + tables, not raw notes.
-  - [ ] `MVP.md` includes all required sections and uses consistent terminology throughout.
-  - [ ] `MVP.md` makes no statements that conflict with the source-grounded findings cited in this plan.
+  - [x] `MVP.md` is coherent narrative + tables, not raw notes.
+  - [x] `MVP.md` includes all required sections and uses consistent terminology throughout.
+  - [x] `MVP.md` makes no statements that conflict with the source-grounded findings cited in this plan.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -462,9 +462,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - OMO config compatibility behavior that future tests must cover: `/work/ock-omo-system/oh-my-openagent/src/plugin-config.ts:168-254`.
 
   **Acceptance Criteria**:
-  - [ ] `MVP.md` contains an Acceptance Suite section with all mandatory future smoke tests.
-  - [ ] Each smoke test names exact commands or exact assertions/artifacts to check.
-  - [ ] The suite covers dual-repo verification plus unified-product compatibility behavior.
+  - [x] `MVP.md` contains an Acceptance Suite section with all mandatory future smoke tests.
+  - [x] Each smoke test names exact commands or exact assertions/artifacts to check.
+  - [x] The suite covers dual-repo verification plus unified-product compatibility behavior.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
@@ -502,9 +502,9 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - OCK preserve/skip semantics: `/work/ock-omo-system/opencodekit-template/src/commands/init.ts:47-77`, `/work/ock-omo-system/opencodekit-template/src/commands/upgrade.ts:29-45`.
 
   **Acceptance Criteria**:
-  - [ ] No contradiction remains between `MVP.md` and the frozen decisions in this plan.
-  - [ ] No contradiction remains between `MVP.md` and cited OCK/OMO source evidence.
-  - [ ] `MVP.md` contains explicit bridge removal triggers and does not normalize permanent duplication.
+  - [x] No contradiction remains between `MVP.md` and the frozen decisions in this plan.
+  - [x] No contradiction remains between `MVP.md` and cited OCK/OMO source evidence.
+  - [x] `MVP.md` contains explicit bridge removal triggers and does not normalize permanent duplication.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
   ```
