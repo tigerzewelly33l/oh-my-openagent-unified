@@ -37,6 +37,7 @@ describe("#given task_system configuration", () => {
         backgroundManager: {},
         tmuxSessionManager: {},
         skillMcpManager: {},
+        beadsRuntime: { activation: { enabled: false } },
       } as Parameters<typeof createToolRegistry>[0]["managers"],
       skillContext: {
         mergedSkills: [],
@@ -64,6 +65,7 @@ describe("#given task_system configuration", () => {
         backgroundManager: {},
         tmuxSessionManager: {},
         skillMcpManager: {},
+        beadsRuntime: { activation: { enabled: false } },
       } as Parameters<typeof createToolRegistry>[0]["managers"],
       skillContext: {
         mergedSkills: [],
@@ -100,6 +102,7 @@ describe("#given tmux integration is disabled", () => {
         backgroundManager: {},
         tmuxSessionManager: {},
         skillMcpManager: {},
+        beadsRuntime: { activation: { enabled: false } },
       } as Parameters<typeof createToolRegistry>[0]["managers"],
       skillContext: {
         mergedSkills: [],
@@ -131,6 +134,7 @@ describe("#given tmux integration is disabled", () => {
         backgroundManager: {},
         tmuxSessionManager: {},
         skillMcpManager: {},
+        beadsRuntime: { activation: { enabled: true } },
       } as Parameters<typeof createToolRegistry>[0]["managers"],
       skillContext: {
         mergedSkills: [],
@@ -144,17 +148,29 @@ describe("#given tmux integration is disabled", () => {
 
     expect(result.filteredTools).not.toHaveProperty("interactive_bash")
   })
-})
 
-describe("#given session compatibility aliases", () => {
-  test("#when creating the tool registry #then find_sessions resolves to the session_list tool", () => {
+  test("#when beads runtime is enabled #then attach and status tools are registered", () => {
     const result = createToolRegistry({
-      ctx: { directory: "/tmp", client: {} } as Parameters<typeof createToolRegistry>[0]["ctx"],
-      pluginConfig: {},
+      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      pluginConfig: {
+        experimental: { beads_runtime: true, task_system: false },
+      },
       managers: {
         backgroundManager: {},
         tmuxSessionManager: {},
         skillMcpManager: {},
+        beadsRuntime: {
+          activation: { enabled: true },
+          statusPolicy: {
+            awarenessMode: "read-reconcile-only",
+            autoClaim: false,
+            autoClose: false,
+            requiresExplicitAttach: true,
+            allowedReadCommands: [],
+            blockedOwnershipActions: [],
+            summary: "summary",
+          },
+        },
       } as Parameters<typeof createToolRegistry>[0]["managers"],
       skillContext: {
         mergedSkills: [],
@@ -163,29 +179,10 @@ describe("#given session compatibility aliases", () => {
         disabledSkills: new Set(),
       },
       availableCategories: [],
+      interactiveBashEnabled: false,
     })
 
-    expect(result.filteredTools.find_sessions).toBe(result.filteredTools.session_list)
-  })
-
-  test("#when creating the tool registry #then read_session resolves to the session_read tool", () => {
-    const result = createToolRegistry({
-      ctx: { directory: "/tmp", client: {} } as Parameters<typeof createToolRegistry>[0]["ctx"],
-      pluginConfig: {},
-      managers: {
-        backgroundManager: {},
-        tmuxSessionManager: {},
-        skillMcpManager: {},
-      } as Parameters<typeof createToolRegistry>[0]["managers"],
-      skillContext: {
-        mergedSkills: [],
-        availableSkills: [],
-        browserProvider: "playwright",
-        disabledSkills: new Set(),
-      },
-      availableCategories: [],
-    })
-
-    expect(result.filteredTools.read_session).toBe(result.filteredTools.session_read)
+    expect(result.filteredTools).toHaveProperty("beads_runtime_attach")
+    expect(result.filteredTools).toHaveProperty("beads_runtime_status")
   })
 })

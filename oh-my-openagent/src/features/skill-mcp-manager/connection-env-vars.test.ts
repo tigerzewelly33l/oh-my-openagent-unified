@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, mock, test } from "bun:test"
 import type { ClaudeCodeMcpServer } from "../claude-code-mcp-loader/types"
 import type { SkillMcpClientInfo, SkillMcpManagerState } from "./types"
-import { importFreshModuleWithMocks } from "./fresh-module-harness"
 
 const trackedStates: SkillMcpManagerState[] = []
 const createdStdioTransports: MockStdioClientTransport[] = []
@@ -51,28 +50,27 @@ class MockStreamableHTTPClientTransport {
 const { disconnectAll } = await import("./cleanup")
 
 async function importFreshConnectionModule() {
-  return await importFreshModuleWithMocks<typeof import("./connection")>({
-    importPath: `./connection?env-vars-test=${Date.now()}-${Math.random()}`,
-    mockedModules: [
-      {
-        specifier: "@modelcontextprotocol/sdk/client/index.js",
-        factory: () => ({ Client: MockClient }),
-      },
-      {
-        specifier: "@modelcontextprotocol/sdk/client/stdio.js",
-        factory: () => ({ StdioClientTransport: MockStdioClientTransport }),
-      },
-      {
-        specifier: "@modelcontextprotocol/sdk/client/streamableHttp.js",
-        factory: () => ({ StreamableHTTPClientTransport: MockStreamableHTTPClientTransport }),
-      },
-    ],
-    restoreSpecifiers: [
-      "@modelcontextprotocol/sdk/client/index.js",
-      "@modelcontextprotocol/sdk/client/stdio.js",
-      "@modelcontextprotocol/sdk/client/streamableHttp.js",
-    ],
-  })
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => ({
+    Client: MockClient,
+  }))
+
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => ({
+    StdioClientTransport: MockStdioClientTransport,
+  }))
+
+  mock.module("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
+    StreamableHTTPClientTransport: MockStreamableHTTPClientTransport,
+  }))
+
+  const module = await import(`./connection?env-vars-test=${Date.now()}-${Math.random()}`)
+  mock.restore()
+  const realClientModule = await import("@modelcontextprotocol/sdk/client/index.js")
+  const realStdioTransportModule = await import("@modelcontextprotocol/sdk/client/stdio.js")
+  const realHttpTransportModule = await import("@modelcontextprotocol/sdk/client/streamableHttp.js")
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => realClientModule)
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => realStdioTransportModule)
+  mock.module("@modelcontextprotocol/sdk/client/streamableHttp.js", () => realHttpTransportModule)
+  return module
 }
 
 afterAll(() => {

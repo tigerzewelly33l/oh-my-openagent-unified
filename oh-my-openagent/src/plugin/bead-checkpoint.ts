@@ -1,18 +1,16 @@
-import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { readBoulderState } from "../features/boulder-state"
 import { log } from "../shared"
 
-export const BEADS_DIR = ".beads"
-export const BEADS_ARTIFACTS_DIR = join(BEADS_DIR, "artifacts")
-export const BEADS_VERIFY_LOG = join(BEADS_DIR, "verify.log")
+const BEADS_ARTIFACTS_DIR = join(".beads", "artifacts")
 
-export function writeBeadCheckpoint(directory: string, sessionID: string): boolean {
+export function writeBeadCheckpoint(directory: string, sessionID: string): void {
   try {
     const state = readBoulderState(directory)
     if (!state) {
-      return true
+      return
     }
 
     const artifactsDir = join(directory, BEADS_ARTIFACTS_DIR)
@@ -28,6 +26,10 @@ export function writeBeadCheckpoint(directory: string, sessionID: string): boole
       session_ids: state.session_ids ?? [],
       task_sessions: state.task_sessions ?? {},
       worktree_path: state.worktree_path ?? null,
+      bead_id: state.bead_id ?? null,
+      bead_source_command: state.bead_source_command ?? null,
+      bead_worktree_path: state.bead_worktree_path ?? state.worktree_path ?? null,
+      bead_last_reconciled_at: state.bead_last_reconciled_at ?? null,
     }
 
     const checkpointPath = join(artifactsDir, `checkpoint-${sessionID}.json`)
@@ -36,40 +38,8 @@ export function writeBeadCheckpoint(directory: string, sessionID: string): boole
       sessionID,
       checkpointPath,
     })
-    return true
   } catch (error) {
     log("[bead-checkpoint] Failed to write checkpoint", {
-      sessionID,
-      error: String(error),
-    })
-    return false
-  }
-}
-
-export function appendVerifyLog(
-  directory: string,
-  sessionID: string,
-  status: "PASS" | "FAIL",
-  planName: string,
-): void {
-  try {
-    const beadsDir = join(directory, BEADS_DIR)
-    if (!existsSync(beadsDir)) {
-      mkdirSync(beadsDir, { recursive: true })
-    }
-
-    const timestamp = new Date().toISOString()
-    const entry = `session:${sessionID} plan:${planName} ${timestamp} ${status}\n`
-    const logPath = join(directory, BEADS_VERIFY_LOG)
-
-    appendFileSync(logPath, entry, "utf-8")
-    log("[verify-log] Appended to verify.log", {
-      sessionID,
-      planName,
-      status,
-    })
-  } catch (error) {
-    log("[verify-log] Failed to write to verify.log", {
       sessionID,
       error: String(error),
     })

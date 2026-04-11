@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, mock, spyOn } fr
 import type { SkillMcpClientInfo, SkillMcpServerContext } from "./types"
 import type { ClaudeCodeMcpServer } from "../claude-code-mcp-loader/types"
 import type { OAuthTokenData } from "../mcp-oauth/storage"
-import { importFreshModuleWithMocks } from "./fresh-module-harness"
 
 // Mock the MCP SDK transports to avoid network calls
 const mockHttpConnect = mock(() => Promise.reject(new Error("Mocked HTTP connection failure")))
@@ -14,96 +13,78 @@ const mockTokens = mock(() => null as OAuthTokenData | null)
 const mockLogin = mock(() => Promise.resolve({ accessToken: "test-token" } satisfies OAuthTokenData))
 const mockRefresh = mock((_: string) => Promise.resolve({ accessToken: "refreshed-token" } satisfies OAuthTokenData))
 
-function createSdkModuleMocks() {
-  return [
-    {
-      specifier: "@modelcontextprotocol/sdk/client/index.js",
-      factory: () => ({
-        Client: class MockClient {
-          constructor(
-            _clientInfo: { name: string; version: string },
-            _options: { capabilities: Record<string, never> },
-          ) {}
-
-          async connect(transport: { start?: () => Promise<void> }) {
-            if (typeof transport.start === "function") {
-              await transport.start()
-              return
-            }
-
-            throw new Error("Mocked stdio connection failure")
-          }
-
-          async close() {
-            await mockClientClose()
-          }
-        },
-      }),
-    },
-    {
-      specifier: "@modelcontextprotocol/sdk/client/streamableHttp.js",
-      factory: () => ({
-        StreamableHTTPClientTransport: class MockStreamableHTTPClientTransport {
-          constructor(public url: URL, public options?: { requestInit?: RequestInit }) {
-            lastTransportInstance = { url, options }
-          }
-          async start() {
-            await mockHttpConnect()
-            throw new Error("Mocked HTTP connection failure")
-          }
-          async close() {
-            await mockHttpClose()
-          }
-        },
-      }),
-    },
-    {
-      specifier: "@modelcontextprotocol/sdk/client/stdio.js",
-      factory: () => ({
-        StdioClientTransport: class MockStdioClientTransport {
-          readonly close = mock(async () => {})
-
-          constructor(
-            public options: { command: string; args?: string[]; env?: Record<string, string>; stderr?: string },
-          ) {}
-        },
-      }),
-    },
-  ]
-}
-
 async function importFreshManagerModule(): Promise<typeof import("./manager")> {
-  const sdkRestoreSpecifiers = [
-    "@modelcontextprotocol/sdk/client/index.js",
-    "@modelcontextprotocol/sdk/client/streamableHttp.js",
-    "@modelcontextprotocol/sdk/client/stdio.js",
-  ]
-  const freshConnection = await importFreshModuleWithMocks<typeof import("./connection")>({
-    importPath: `./connection?manager-connection=${Date.now()}-${Math.random()}`,
-    mockedModules: createSdkModuleMocks(),
-    restoreSpecifiers: sdkRestoreSpecifiers,
-  })
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => ({
+    Client: class MockClient {
+      constructor(
+        _clientInfo: { name: string; version: string },
+        _options: { capabilities: Record<string, never> },
+      ) {}
 
-  return await importFreshModuleWithMocks<typeof import("./manager")>({
-    importPath: `./manager?test=${Date.now()}-${Math.random()}`,
-    mockedModules: [
-      ...createSdkModuleMocks(),
-      {
-        specifier: "./connection",
-        factory: () => ({
-          getOrCreateClient: freshConnection.getOrCreateClient,
-          getOrCreateClientWithRetryImpl: freshConnection.getOrCreateClientWithRetryImpl,
-        }),
-      },
-    ],
-    restoreSpecifiers: [...sdkRestoreSpecifiers, "./connection"],
-  })
+      async connect(transport: { start?: () => Promise<void> }) {
+        if (typeof transport.start === "function") {
+          await transport.start()
+          return
+        }
+
+        throw new Error("Mocked stdio connection failure")
+      }
+
+      async close() {
+        await mockClientClose()
+      }
+    },
+  }))
+
+  mock.module("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
+    StreamableHTTPClientTransport: class MockStreamableHTTPClientTransport {
+      constructor(public url: URL, public options?: { requestInit?: RequestInit }) {
+        lastTransportInstance = { url, options }
+      }
+      async start() {
+        await mockHttpConnect()
+        throw new Error("Mocked HTTP connection failure")
+      }
+      async close() {
+        await mockHttpClose()
+      }
+    },
+  }))
+
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => ({
+    StdioClientTransport: class MockStdioClientTransport {
+      readonly close = mock(async () => {})
+
+      constructor(
+        public options: { command: string; args?: string[]; env?: Record<string, string>; stderr?: string },
+      ) {}
+    },
+  }))
+
+  const freshConnection = await import(`./connection?manager-connection=${Date.now()}-${Math.random()}`)
+  mock.module("./connection", () => ({
+    getOrCreateClient: freshConnection.getOrCreateClient,
+    getOrCreateClientWithRetryImpl: freshConnection.getOrCreateClientWithRetryImpl,
+  }))
+
+  const module = await import(`./manager?test=${Date.now()}-${Math.random()}`)
+  mock.restore()
+
+  const realClientModule = await import("@modelcontextprotocol/sdk/client/index.js")
+  const realHttpTransportModule = await import("@modelcontextprotocol/sdk/client/streamableHttp.js")
+  const realStdioTransportModule = await import("@modelcontextprotocol/sdk/client/stdio.js")
+  const realConnectionModule = await import("./connection")
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => realClientModule)
+  mock.module("@modelcontextprotocol/sdk/client/streamableHttp.js", () => realHttpTransportModule)
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => realStdioTransportModule)
+  mock.module("./connection", () => realConnectionModule)
+  return module
 }
 
 afterAll(() => { mock.restore() })
 
 describe("SkillMcpManager", () => {
-  let manager: import("./manager").SkillMcpManager
+  let manager: any
 
   beforeEach(async () => {
     const { SkillMcpManager } = await importFreshManagerModule()
