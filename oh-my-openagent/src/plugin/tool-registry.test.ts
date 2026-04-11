@@ -146,8 +146,8 @@ describe("#given tmux integration is disabled", () => {
   })
 })
 
-describe("#given session compatibility aliases", () => {
-  test("#when creating the tool registry #then find_sessions resolves to the session_list tool", () => {
+describe("#given canonical session tools", () => {
+  test("#when creating the tool registry #then canonical session tools remain registered", () => {
     const result = createToolRegistry({
       ctx: { directory: "/tmp", client: {} } as Parameters<typeof createToolRegistry>[0]["ctx"],
       pluginConfig: {},
@@ -165,10 +165,11 @@ describe("#given session compatibility aliases", () => {
       availableCategories: [],
     })
 
-    expect(result.filteredTools.find_sessions).toBe(result.filteredTools.session_list)
+    expect(result.filteredTools).toHaveProperty("session_list")
+    expect(result.filteredTools).toHaveProperty("session_read")
   })
 
-  test("#when creating the tool registry #then read_session resolves to the session_read tool", () => {
+  test("#when creating the tool registry #then legacy session aliases are not registered", () => {
     const result = createToolRegistry({
       ctx: { directory: "/tmp", client: {} } as Parameters<typeof createToolRegistry>[0]["ctx"],
       pluginConfig: {},
@@ -186,6 +187,7 @@ describe("#given session compatibility aliases", () => {
       availableCategories: [],
     })
 
-    expect(result.filteredTools.read_session).toBe(result.filteredTools.session_read)
+    expect(result.filteredTools).not.toHaveProperty("find_sessions")
+    expect(result.filteredTools).not.toHaveProperty("read_session")
   })
 })
