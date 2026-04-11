@@ -29,3 +29,7 @@
 2026-04-08
 - The reviewer follow-up showed that importing the side-effectful CLI entrypoint just to inspect `cli.commands` is too weak and noisy for this boundary. A stronger OCK-side proof is to read `src/index.ts` as source and assert the complete allowed command registration set.
 - The strengthened Task 7 test now fails on any command-surface drift toward runtime ownership, not only on a literal `run` addition: it locks the exact OCK bootstrap/management commands and separately rejects runtime-adjacent names like `run`, `resume`, `session`, `attach`, `serve`, and `server`.
+
+2026-04-09
+- Final-wave review exposed a real CLI-surface defect unrelated to the runtime boundary itself: `src/index.ts` had two `agent [action]` registrations, and the source-level contract test originally hid that by deduplicating command names before asserting the allowed set.
+- Tightening the contract required two steps together: remove the duplicate `agent` registration from `src/index.ts`, and make `src/index.test.ts` assert that the raw registered command list has no duplicates before comparing the unique sorted command set.
