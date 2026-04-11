@@ -216,19 +216,20 @@ For complex delegations, write context to a file instead of inlining it in the `
 ```typescript
 // ❌ Token-expensive: inlining large context
 task({
-  prompt: `Here is the full plan:\n${longPlanContent}\n\nImplement task 3...`
+  prompt: `Here is the full plan:\n${longPlanContent}\n\nImplement task 3...`,
 });
 
 // ✅ Token-efficient: reference by path
 // Write context file first:
-write('.beads/artifacts/<id>/worker-context.md', contextContent);
+write(".beads/artifacts/<id>/worker-context.md", contextContent);
 // Then reference it:
 task({
-  prompt: `Read the context file at .beads/artifacts/<id>/worker-context.md\n\nImplement task 3 as described in that file.`
+  prompt: `Read the context file at .beads/artifacts/<id>/worker-context.md\n\nImplement task 3 as described in that file.`,
 });
 ```
 
 Use this pattern when:
+
 - Context exceeds ~500 tokens
 - Multiple subagents need the same context
 - Plan content, research findings, or specs need to be passed to workers
@@ -274,12 +275,12 @@ For major tracked work:
 
 ### Token Budget
 
-| Phase             | Target  | Action                                     |
-| ----------------- | ------- | ------------------------------------------ |
-| Starting work     | <50k    | Load only essential AGENTS.md + task spec  |
+| Phase             | Target  | Action                                       |
+| ----------------- | ------- | -------------------------------------------- |
+| Starting work     | <50k    | Load only essential AGENTS.md + task spec    |
 | Mid-task          | 50-100k | Compress completed phases, keep active files |
 | Approaching limit | >100k   | Aggressive compression, sweep stale noise    |
-| Near capacity     | >150k   | Session restart with handoff               |
+| Near capacity     | >150k   | Session restart with handoff                 |
 
 ### DCP Commands
 
@@ -393,7 +394,7 @@ session_search({ query: "auth", limit: 5 })
 
 # Read session messages
 session_read({ session_id: "abc123" })
-session_read({ session_id: "abc123", focus: "auth" })
+session_search({ query: "auth", session_id: "abc123", limit: 5 })
 ```
 
 ### Directory Structure
