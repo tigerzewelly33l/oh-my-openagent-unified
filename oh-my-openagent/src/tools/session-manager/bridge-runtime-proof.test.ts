@@ -142,7 +142,7 @@ describe("bridge runtime proof", () => {
     rmSync(TEST_ROOT, { recursive: true, force: true })
   })
 
-  test("generated OCK bridge artifacts work with canonical OMO session tools after plugin removal", async () => {
+  test("#given generated OCK bridge artifacts #when canonical OMO session tools run after plugin removal #then canonical session list search and read succeed without legacy aliases", async () => {
     const sessionID = seedBridgeRuntimeStorage()
     const tools = createSessionManagerTools(mockCtx)
 

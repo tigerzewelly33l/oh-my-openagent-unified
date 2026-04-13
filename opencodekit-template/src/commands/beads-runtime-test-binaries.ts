@@ -1,5 +1,5 @@
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 export function installFakeRuntimeBinaries(
 	projectDir: string,
@@ -7,10 +7,14 @@ export function installFakeRuntimeBinaries(
 ) {
 	const binDir = join(projectDir, "bin");
 	mkdirSync(binDir, { recursive: true });
-	writeFileSync(
-		join(binDir, "npm"),
-		"#!/usr/bin/env bash\nmkdir -p node_modules\nexit 0\n",
-	);
+	const fakeNpmScript = [
+		"#!/usr/bin/env node",
+		'const { mkdirSync } = require("node:fs");',
+		'const { join } = require("node:path");',
+		'mkdirSync(join(process.cwd(), "node_modules"), { recursive: true });',
+		"process.exit(0);",
+	].join("\n");
+	writeFileSync(join(binDir, "npm"), fakeNpmScript);
 	chmodSync(join(binDir, "npm"), 0o755);
 
 	const fakeBrScript = [
@@ -88,5 +92,7 @@ export function installFakeRuntimeBinaries(
 
 	writeFileSync(join(binDir, "br"), fakeBrScript);
 	chmodSync(join(binDir, "br"), 0o755);
-	process.env.PATH = `${binDir}:${originalPath ?? ""}`;
+	process.env.PATH = originalPath
+		? `${binDir}${delimiter}${originalPath}`
+		: binDir;
 }

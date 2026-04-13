@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { assertBeadsRuntimeCommandContracts } from "./beads-runtime-command-assertions.js";
@@ -8,6 +9,7 @@ import { writeRuntimeArtifacts } from "./beads-runtime-test-artifacts.js";
 import { installFakeRuntimeBinaries } from "./beads-runtime-test-binaries.js";
 
 const TEMPLATE_ROOT = new URL("../..", import.meta.url);
+const TEMPLATE_ROOT_PATH = fileURLToPath(TEMPLATE_ROOT);
 
 const promptMocks = vi.hoisted(() => ({
 	intro: vi.fn(),
@@ -42,7 +44,7 @@ vi.mock("./init/paths.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./init/paths.js")>();
 	return {
 		...actual,
-		getTemplateRoot: () => TEMPLATE_ROOT.pathname,
+		getTemplateRoot: () => TEMPLATE_ROOT_PATH,
 		getPackageVersion: () => "0.20.1-test",
 	};
 });
@@ -54,6 +56,7 @@ const ORIGINAL_ARGV = [...process.argv];
 const ORIGINAL_CWD = process.cwd();
 const ORIGINAL_PATH = process.env.PATH;
 const ORIGINAL_XDG_CONFIG_HOME = process.env.XDG_CONFIG_HOME;
+const TEMP_DIRS: string[] = [];
 
 afterEach(() => {
 	process.argv = [...ORIGINAL_ARGV];
@@ -73,12 +76,16 @@ afterEach(() => {
 	promptMocks.spinnerStart.mockReset();
 	promptMocks.spinnerStop.mockReset();
 	vi.restoreAllMocks();
+	for (const tempDir of TEMP_DIRS.splice(0)) {
+		rmSync(tempDir, { recursive: true, force: true });
+	}
 });
 
 describe("beads runtime temp-project acceptance", () => {
 	it("executes the integrated beads runtime contract in a temp project without crossing authored ownership boundaries", async () => {
 		const projectDir = createTempProject("ock-beads-acceptance-");
 		const xdgDir = createTempProject("ock-xdg-");
+		TEMP_DIRS.push(projectDir, xdgDir);
 		process.env.XDG_CONFIG_HOME = xdgDir;
 		installFakeRuntimeBinaries(projectDir, ORIGINAL_PATH);
 		process.chdir(projectDir);
@@ -91,7 +98,7 @@ describe("beads runtime temp-project acceptance", () => {
 			"utf-8",
 		);
 		const templateBridgeConfig = readFileSync(
-			join(TEMPLATE_ROOT.pathname, ".opencode", "oh-my-openagent.jsonc"),
+			join(TEMPLATE_ROOT_PATH, ".opencode", "oh-my-openagent.jsonc"),
 			"utf-8",
 		);
 		const opencodeConfig = JSON.parse(
