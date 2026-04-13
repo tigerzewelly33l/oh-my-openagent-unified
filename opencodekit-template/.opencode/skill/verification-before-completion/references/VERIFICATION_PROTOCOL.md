@@ -114,8 +114,9 @@ echo "$STAMP $(date -u +%Y-%m-%dT%H:%M:%SZ) PASS" >> .beads/verify.log
 ### Skip Check (before running gates)
 
 ```bash
-# Read last verification stamp
-LAST_STAMP=$(tail -1 .beads/verify.log 2>/dev/null | awk '{print $1}')
+# Read the most recent OCK verification stamp.
+# Ignore OMO completion entries like: session:<id> plan:<name> <timestamp> PASS|FAIL
+LAST_STAMP=$(grep -E '^[0-9a-f]{64} ' .beads/verify.log 2>/dev/null | tail -1 | awk '{print $1}')
 
 # Recompute current fingerprint (same formula as recording)
 CURRENT_STAMP=$(printf '%s\n%s\n%s' \
@@ -131,6 +132,8 @@ else
   # Run gates normally
 fi
 ```
+
+Only OCK verification records written as `<stamp> <timestamp> PASS` participate in cache reuse. Mixed-log `session:` entries from OMO still belong in `.beads/verify.log`, but they are completion evidence rather than cache stamps.
 
 ### When Cache is Invalidated
 
