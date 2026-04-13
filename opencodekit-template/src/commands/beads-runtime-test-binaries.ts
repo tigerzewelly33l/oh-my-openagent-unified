@@ -56,6 +56,7 @@ export function installFakeRuntimeBinaries(
 		'if (args[0] === "init") {',
 		'  mkdirSync(join(beadsDir, "artifacts"), { recursive: true });',
 		'  writeFileSync(join(beadsDir, "config.yaml"), "version: 1\\n");',
+		'  writeFileSync(join(beadsDir, "issues.jsonl"), "", { flag: "a" });',
 		"  saveLedger(loadLedger());",
 		"  process.exit(0);",
 		"}",

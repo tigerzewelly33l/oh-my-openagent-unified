@@ -197,6 +197,7 @@ describe("beads runtime temp-project acceptance", () => {
 		expect(ready).toEqual([{ id: taskA.id, title: "Task A", status: "open" }]);
 
 		expect(existsSync(join(projectDir, ".beads", "verify.log"))).toBe(false);
+		expect(existsSync(join(projectDir, ".beads", "issues.jsonl"))).toBe(true);
 		expect(
 			existsSync(
 				join(projectDir, ".beads", "artifacts", "runtime-attachments.json"),
