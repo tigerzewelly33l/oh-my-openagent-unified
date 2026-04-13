@@ -1,22 +1,27 @@
 # OCK + OMO Bootstrap Runtime Contract
 
 ## TL;DR
+
 > **Summary**: Implement the first real unification slice by making `ock` initialize and upgrade a deterministic OMO-compatible project runtime shape, while keeping OMO as the sole runtime/config/execution owner.
 > **Deliverables**:
+>
 > - deterministic canonical OMO config emission from OCK init/upgrade
 > - upgrade-safe bridge-controlled file placement under `.opencode/`
 > - optional OCK runtime front-door handoff that delegates to OMO-owned runner semantics
 > - contract tests proving fresh init, global-config overlap, upgrade/orphan safety, and OMO config compatibility
-> **Effort**: Medium
-> **Parallel**: YES - 2 waves
-> **Critical Path**: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+>   **Effort**: Medium
+>   **Parallel**: YES - 2 waves
+>   **Critical Path**: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 ## Context
+
 ### Original Request
+
 - User approved the MVP architecture and asked to proceed with the first implementation plan.
 - The selected first slice is the bootstrap/runtime contract: prove that OCK is the front door and OMO is the runtime engine before tackling deeper bridges.
 
 ### Interview Summary
+
 - Architecture remains frozen from `MVP.md`:
   - OCK is the public entry/front door.
   - OMO is the runtime/orchestration engine.
@@ -27,6 +32,7 @@
 - Planning mode was escalated to ultrabrain-level scrutiny for this slice.
 
 ### Metis Review (gaps addressed)
+
 - This slice must be a **bridge contract plan**, not a broad merge plan.
 - New installs must write **canonical** OMO identifiers only.
 - Bridge-controlled files must live in upgradeable, template-owned `.opencode/` root-level locations rather than preserved user/hybrid directories.
@@ -34,10 +40,13 @@
 - The plan must explicitly exclude memory migration, full CLI unification, and scheduler/task-engine expansion.
 
 ## Work Objectives
+
 ### Core Objective
+
 Implement the smallest real unification slice that proves an OCK-initialized project can be loaded and run by OMO using canonical project config and deterministic bridge-managed artifacts, with upgrade-safe behavior and no hidden reliance on machine-specific global config.
 
 ### Deliverables
+
 - OCK init/upgrade behavior that emits canonical OMO bridge artifacts into deterministic project-local `.opencode/` locations.
 - OCK preserve/skip/prune logic updated so bridge-managed files remain upgradeable and orphan-safe.
 - OMO config compatibility tests covering canonical and legacy project config loading, canonical precedence, and project/user merge constraints.
@@ -45,6 +54,7 @@ Implement the smallest real unification slice that proves an OCK-initialized pro
 - Documentation/comments only as needed inside touched implementation files and tests; no new broad architecture docs.
 
 ### Definition of Done (verifiable conditions with commands)
+
 ```bash
 cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run test && npm run build
 
@@ -58,6 +68,7 @@ TMP="$(mktemp -d)" && cd "$TMP" && node /work/ock-omo-system/opencodekit-templat
 ```
 
 ### Must Have
+
 - New installs emit only canonical `oh-my-openagent` plugin/config identifiers.
 - Legacy `oh-my-opencode` project config remains readable by OMO, but is not emitted by OCK for new installs.
 - Bridge-controlled files live outside preserved directories like `agent/`, `command/`, `context/`, `memory/`, `skill/`, and `tool/`.
@@ -66,6 +77,7 @@ TMP="$(mktemp -d)" && cd "$TMP" && node /work/ock-omo-system/opencodekit-templat
 - Any OCK runtime front-door command added in this slice preserves OMO `run` contract semantics rather than forking them.
 
 ### Must NOT Have
+
 - No memory migration or memory ownership changes.
 - No command/skill/session bridge completion.
 - No task scheduling changes or new Rust worker/scheduler behavior.
@@ -75,13 +87,17 @@ TMP="$(mktemp -d)" && cd "$TMP" && node /work/ock-omo-system/opencodekit-templat
 - No dual-write of canonical and legacy OMO config files for new installs.
 
 ## Verification Strategy
+
 > ZERO HUMAN INTERVENTION - all verification is agent-executed.
+
 - Test decision: tests-after. This slice spans two repos and is best validated with fixture-based contract tests plus temp-dir smoke checks after implementation.
 - QA policy: every task includes implementation + verification together; no “write code now, test later” split tasks.
 - Evidence: `.sisyphus/evidence/task-{N}-{slug}.{ext}`
 
 ## Execution Strategy
+
 ### Parallel Execution Waves
+
 > The critical path is OCK bootstrap contract first, then OMO compatibility and final cross-repo verification.
 
 Wave 1: 1) extract OCK init helpers, 2) extract OCK upgrade helpers, 3) define canonical bridge artifact policy, 4) add OMO config compatibility tests
@@ -90,25 +106,26 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
 
 ### Dependency Matrix (full, all tasks)
 
-| Task | Depends On | Blocks |
-|------|------------|--------|
-| 1 | — | 5, 6, 7 |
-| 2 | — | 5, 6 |
-| 3 | 1, 2 | 5, 6, 7, 8 |
-| 4 | — | 8 |
-| 5 | 1, 2, 3 | 6, 7, 8 |
-| 6 | 1, 2, 3, 5 | 8 |
-| 7 | 1, 3, 5 | 8 |
-| 8 | 4, 5, 6, 7 | F1-F4 |
+| Task | Depends On | Blocks     |
+| ---- | ---------- | ---------- |
+| 1    | —          | 5, 6, 7    |
+| 2    | —          | 5, 6       |
+| 3    | 1, 2       | 5, 6, 7, 8 |
+| 4    | —          | 8          |
+| 5    | 1, 2, 3    | 6, 7, 8    |
+| 6    | 1, 2, 3, 5 | 8          |
+| 7    | 1, 3, 5    | 8          |
+| 8    | 4, 5, 6, 7 | F1-F4      |
 
 ### Agent Dispatch Summary
 
-| Wave | Task Count | Categories |
-|------|------------|------------|
-| 1 | 4 | `deep` x4 |
-| 2 | 4 | `deep` x2, `unspecified-high` x2 |
+| Wave | Task Count | Categories                       |
+| ---- | ---------- | -------------------------------- |
+| 1    | 4          | `deep` x4                        |
+| 2    | 4          | `deep` x2, `unspecified-high` x2 |
 
 ## TODOs
+
 <!-- TASKS INSERT HERE -->
 
 > Historical task and acceptance checkboxes below track execution progress inside this plan. They are distinct from the final user-approval gates in F1-F4, which must remain unchecked until explicit user okay is recorded.
@@ -138,6 +155,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] LSP diagnostics for the touched OCK command subtree report no new errors.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Init extraction preserves command surface
     Tool: Bash
@@ -179,6 +197,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] LSP diagnostics for the touched OCK command subtree report no new errors.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Upgrade extraction preserves test behavior
     Tool: Bash
@@ -219,6 +238,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] OMO legacy-read compatibility is unchanged for pre-existing repos.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Fresh init emits canonical OMO identifiers only
     Tool: Bash
@@ -259,6 +279,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] OMO tests prove `mcp_env_allowlist` comes from user config, not project config.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: OMO plugin-config contract tests pass
     Tool: Bash
@@ -300,6 +321,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] Bridge-controlled files are not placed solely inside preserved user/hybrid directories.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Global-config overlap still yields local canonical bridge contract
     Tool: Bash
@@ -340,6 +362,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] OCK test suite passes in the local repo.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: OCK bridge contract tests pass
     Tool: Bash
@@ -378,6 +401,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] If no wrapper is added, the implementation documents and tests that slice-one runtime proof uses OCK bootstrap plus OMO runtime execution directly.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Runtime handoff wrapper preserves OMO run semantics
     Tool: Bash
@@ -418,36 +442,41 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
   - [x] The resulting project artifacts match the canonical OMO bridge contract.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: OCK verification suite passes
     Tool: Bash
     Steps: Run `cd /work/ock-omo-system/opencodekit-template && npm run typecheck && npm run test && npm run build`
     Expected: OCK repo passes the full verification suite for this slice.
-    Evidence: .sisyphus/evidence/task-8-cross-repo-verify.txt
+    Evidence: .sisyphus/evidence/task-8-ock-cross-repo-verify.txt
 
   Scenario: OMO verification suite and temp-dir smoke tests pass
     Tool: Bash
     Steps: Run `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck && bun test src/plugin-config.test.ts && bun run build`, then execute the temp-dir smoke commands from Definition of Done.
     Expected: OMO passes compatibility verification and the cross-repo bridge contract holds under temp-dir bootstrap scenarios.
-    Evidence: .sisyphus/evidence/task-8-cross-repo-verify.txt
+    Evidence: .sisyphus/evidence/task-8-omo-cross-repo-verify.txt
   ```
 
   **Commit**: NO | Message: `test(contract): verify ock-omo bootstrap bridge` | Files: [verification only]
 
 ## Final Verification Wave (MANDATORY — after ALL implementation tasks)
+
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
+
 - [ ] F1. Plan Compliance Audit — oracle
 - [ ] F2. Code Quality Review — unspecified-high
 - [ ] F3. Real Manual QA — unspecified-high
 - [ ] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
+
 - Do not commit automatically.
 - If the user requests a commit after approval, use a message scoped to the bridge contract slice only, e.g. `feat(bootstrap): add omo runtime contract to ock init`.
 
 ## Success Criteria
+
 - `ock init` and `ock upgrade` deterministically manage canonical OMO bridge artifacts at project scope.
 - OMO can load canonical project config and still read legacy project config during the compatibility window.
 - The bridge survives `--project-only`, global-config overlap, upgrade preserve rules, and orphan pruning.
