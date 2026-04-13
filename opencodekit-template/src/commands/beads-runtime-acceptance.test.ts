@@ -139,6 +139,34 @@ describe("beads runtime temp-project acceptance", () => {
 			offset: 0,
 			has_more: false,
 		});
+
+		writeFileSync(
+			join(projectDir, ".beads", "ledger.json"),
+			JSON.stringify(
+				{
+					next: 4,
+					tasks: [
+						{ id: "bd-1", title: "Completed parent", status: "completed" },
+						{ id: "bd-2", title: "Ready child", status: "open" },
+						{ id: "bd-3", title: "Active task", status: "in_progress" },
+					],
+					deps: [{ child: "bd-2", parent: "bd-1" }],
+					syncs: 0,
+				},
+				null,
+				2,
+			),
+		);
+
+		const ready = JSON.parse(
+			execFileSync("br", ["ready", "--json"], {
+				cwd: projectDir,
+				encoding: "utf-8",
+			}),
+		) as Array<{ id: string; title: string; status: string }>;
+		expect(ready).toEqual([
+			{ id: "bd-2", title: "Ready child", status: "open" },
+		]);
 	});
 
 	it("executes the integrated beads runtime contract in a temp project without crossing authored ownership boundaries", async () => {
