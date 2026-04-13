@@ -206,8 +206,6 @@ export function createToolRegistry(args: {
     ...createGlobTools(ctx),
     ...createAstGrepTools(ctx),
     ...sessionTools,
-    find_sessions: sessionTools.session_list,
-    read_session: sessionTools.session_read,
     ...backgroundTools,
     call_omo_agent: callOmoAgent,
     ...(lookAt ? { look_at: lookAt } : {}),

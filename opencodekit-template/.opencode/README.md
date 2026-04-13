@@ -12,7 +12,7 @@ This directory contains project-specific OpenCode configuration: agents, command
 ├── agent/                   # Agent definitions (9)
 ├── command/                 # Slash commands (19)
 ├── skill/                   # Skill library used by agents/commands
-├── tool/                    # Custom tools (memory, swarm, research, etc.)
+├── tool/                    # Template-local tools (`context7`, `grepsearch`)
 ├── plugin/                  # OpenCode plugins and plugin-local SDK code
 ├── memory/                  # Memory templates + project memory files
 └── .env.example             # Environment variable template
@@ -30,7 +30,6 @@ Add the keys you actually need for enabled services.
 
 - Spec-first flow: `/create` -> `/start <id>` -> `/ship <id>`
 - Use `/plan <id>` optionally for deeper implementation planning
-- Use `/doctor` for workspace health diagnostics
 - Use `/status` and `/resume` for continuity
 
 ## Skills
@@ -45,9 +44,8 @@ Skills live in `.opencode/skill/` and are loaded on demand with `skill({ name: "
 
 Tools in `.opencode/tool/` are loaded by OpenCode and available to agents.
 
-- Memory: `memory-search`, `memory-get`, `memory-read`, `memory-update`, `memory-admin`, `memory-timeline`
-- Observability/orchestration: `observation`, `swarm`, `action-queue`
-- External research/docs: `context7`, `grepsearch`
+- Template-local research/docs tools: `context7`, `grepsearch`
+- Memory and observation tooling is provided by the template plugin layer (`.opencode/plugin/memory.ts`), while session browsing/search and skill-MCP runtime surfaces are provided by the OMO runtime layer rather than template-local `.opencode/tool/*.ts` files
 
 ## Plugins
 

@@ -142,7 +142,7 @@ describe("bridge runtime proof", () => {
     rmSync(TEST_ROOT, { recursive: true, force: true })
   })
 
-  test("generated OCK bridge artifacts and OMO-owned legacy session aliases work together after plugin removal", async () => {
+  test("#given generated OCK bridge artifacts #when canonical OMO session tools run after plugin removal #then canonical session list search and read succeed without legacy aliases", async () => {
     const sessionID = seedBridgeRuntimeStorage()
     const tools = createSessionManagerTools(mockCtx)
 
@@ -150,10 +150,12 @@ describe("bridge runtime proof", () => {
     expect(existsSync(join(GENERATED_PROJECT_DIR, ".opencode", "plugin", "skill-mcp.ts"))).toBe(false)
     expect(readFileSync(join(GENERATED_PROJECT_DIR, ".opencode", "opencode.json"), "utf-8")).toContain("oh-my-openagent")
     expect(existsSync(join(GENERATED_PROJECT_DIR, ".opencode", "oh-my-openagent.jsonc"))).toBe(true)
+    expect("find_sessions" in tools).toBe(false)
+    expect("read_session" in tools).toBe(false)
 
     const listResult = await tools.session_list.execute({ project_path: GENERATED_PROJECT_DIR, limit: 5 }, mockContext)
-    const searchResult = await tools.find_sessions.execute({ query: "bridge", session_id: sessionID, limit: 5 }, mockContext)
-    const readResult = await tools.read_session.execute({ session_id: sessionID, focus: "bridge", include_todos: true }, mockContext)
+    const searchResult = await tools.session_search.execute({ query: "bridge", session_id: sessionID, limit: 5 }, mockContext)
+    const readResult = await tools.session_read.execute({ session_id: sessionID, include_todos: true }, mockContext)
 
     expect(listResult).toContain(sessionID)
     expect(searchResult).toContain(sessionID)
