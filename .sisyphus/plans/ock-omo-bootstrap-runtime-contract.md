@@ -111,6 +111,8 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
 ## TODOs
 <!-- TASKS INSERT HERE -->
 
+> Historical task and acceptance checkboxes below track execution progress inside this plan. They are distinct from the final user-approval gates in F1-F4, which must remain unchecked until explicit user okay is recorded.
+
 - [x] 1. Extract OCK init bridge logic into focused modules before behavior changes
 
   **What to do**: Refactor `opencodekit-template/src/commands/init.ts` so the bootstrap/runtime bridge behavior can be added without extending an already oversized file. Extract focused helpers for: global-config detection, project-only skip decisions, canonical bridge artifact emission, `.beads` initialization, and dependency-install outcome handling. Keep `init.ts` as the orchestrator while moving new slice-specific logic into dedicated modules under `src/commands/init/` or a similarly scoped folder.
@@ -427,7 +429,7 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
     Tool: Bash
     Steps: Run `cd /work/ock-omo-system/oh-my-openagent && bun run typecheck && bun test src/plugin-config.test.ts && bun run build`, then execute the temp-dir smoke commands from Definition of Done.
     Expected: OMO passes compatibility verification and the cross-repo bridge contract holds under temp-dir bootstrap scenarios.
-    Evidence: .sisyphus/evidence/task-8-cross-repo-verify-error.txt
+    Evidence: .sisyphus/evidence/task-8-cross-repo-verify.txt
   ```
 
   **Commit**: NO | Message: `test(contract): verify ock-omo bootstrap bridge` | Files: [verification only]
@@ -436,10 +438,10 @@ Wave 2: 5) implement OCK init/upgrade bridge behavior, 6) add OCK contract tests
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
-- [x] F1. Plan Compliance Audit — oracle
-- [x] F2. Code Quality Review — unspecified-high
-- [x] F3. Real Manual QA — unspecified-high
-- [x] F4. Scope Fidelity Check — deep
+- [ ] F1. Plan Compliance Audit — oracle
+- [ ] F2. Code Quality Review — unspecified-high
+- [ ] F3. Real Manual QA — unspecified-high
+- [ ] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
 - Do not commit automatically.
