@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -82,6 +88,59 @@ afterEach(() => {
 });
 
 describe("beads runtime temp-project acceptance", () => {
+	it("installs cross-platform fake runtime binaries and filters in-progress bead listings", () => {
+		const projectDir = createTempProject("ock-beads-runtime-binaries-");
+		TEMP_DIRS.push(projectDir);
+		installFakeRuntimeBinaries(projectDir, ORIGINAL_PATH);
+
+		expect(existsSync(join(projectDir, "bin", "npm"))).toBe(true);
+		expect(existsSync(join(projectDir, "bin", "br"))).toBe(true);
+		expect(existsSync(join(projectDir, "bin", "npm.cmd"))).toBe(true);
+		expect(existsSync(join(projectDir, "bin", "br.cmd"))).toBe(true);
+
+		mkdirSync(join(projectDir, ".beads"), { recursive: true });
+		writeFileSync(
+			join(projectDir, ".beads", "ledger.json"),
+			JSON.stringify(
+				{
+					next: 4,
+					tasks: [
+						{ id: "bd-1", title: "Open task", status: "open" },
+						{ id: "bd-2", title: "In progress task", status: "in_progress" },
+						{ id: "bd-3", title: "Completed task", status: "completed" },
+					],
+					deps: [],
+					syncs: 0,
+				},
+				null,
+				2,
+			),
+		);
+
+		const listed = JSON.parse(
+			execFileSync("br", ["list", "--status", "in_progress", "--json"], {
+				cwd: projectDir,
+				encoding: "utf-8",
+			}),
+		) as {
+			issues: Array<{ id: string; title: string; status: string }>;
+			total: number;
+			limit: number;
+			offset: number;
+			has_more: boolean;
+		};
+
+		expect(listed).toEqual({
+			issues: [
+				{ id: "bd-2", title: "In progress task", status: "in_progress" },
+			],
+			total: 1,
+			limit: 50,
+			offset: 0,
+			has_more: false,
+		});
+	});
+
 	it("executes the integrated beads runtime contract in a temp project without crossing authored ownership boundaries", async () => {
 		const projectDir = createTempProject("ock-beads-acceptance-");
 		const xdgDir = createTempProject("ock-xdg-");

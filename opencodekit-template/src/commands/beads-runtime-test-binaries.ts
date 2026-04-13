@@ -15,6 +15,10 @@ export function installFakeRuntimeBinaries(
 		"process.exit(0);",
 	].join("\n");
 	writeFileSync(join(binDir, "npm"), fakeNpmScript);
+	writeFileSync(
+		join(binDir, "npm.cmd"),
+		'@echo off\r\nnode "%~dp0\\npm" %*\r\n',
+	);
 	chmodSync(join(binDir, "npm"), 0o755);
 
 	const fakeBrScript = [
@@ -74,7 +78,8 @@ export function installFakeRuntimeBinaries(
 		"  process.exit(0);",
 		"}",
 		'if (args[0] === "list" && args[1] === "--status" && args[2] === "in_progress" && args[3] === "--json") {',
-		"  process.stdout.write(JSON.stringify({ issues: ledger.tasks, total: ledger.tasks.length, limit: 50, offset: 0, has_more: false }));",
+		'  const issues = ledger.tasks.filter((task) => task.status === "in_progress");',
+		"  process.stdout.write(JSON.stringify({ issues, total: issues.length, limit: 50, offset: 0, has_more: false }));",
 		"  process.exit(0);",
 		"}",
 		'if (args[0] === "show" && args.includes("--json")) {',
@@ -91,6 +96,7 @@ export function installFakeRuntimeBinaries(
 	].join("\n");
 
 	writeFileSync(join(binDir, "br"), fakeBrScript);
+	writeFileSync(join(binDir, "br.cmd"), '@echo off\r\nnode "%~dp0\\br" %*\r\n');
 	chmodSync(join(binDir, "br"), 0o755);
 	process.env.PATH = originalPath
 		? `${binDir}${delimiter}${originalPath}`
