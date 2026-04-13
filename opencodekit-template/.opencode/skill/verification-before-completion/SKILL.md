@@ -181,7 +181,7 @@ Before ANY completion claim (bead close, PR creation, `/ship`, task completion):
 2. If verify.log is missing or stale (older than last file change) → **BLOCK** — run verification first
 3. Do not treat OMO `session:<id> plan:<name> ... PASS|FAIL` entries as cache stamps or as proof that verification gates already passed
 
-```
+```text
 ✅ verify.log exists, with a recent stamp-shaped PASS entry within the last edit window → proceed
 ❌ verify.log missing → STOP: "Run verification first"
 ❌ only OMO session entries exist → STOP: "Run verification to write a cache stamp"

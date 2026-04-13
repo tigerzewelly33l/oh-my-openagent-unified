@@ -51,7 +51,7 @@ CURRENT_STAMP=$(printf '%s\n%s\n%s' \
   "$(git diff HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx')" \
   "$(git ls-files --others --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.jsx' | xargs cat 2>/dev/null)" \
   | shasum -a 256 | cut -d' ' -f1)
-LAST_STAMP=$(grep -E '^[0-9a-f]{64} ' .beads/verify.log 2>/dev/null | tail -1 | awk '{print $1}')
+LAST_STAMP=$(awk '/^[0-9a-f]{64} / && $3 == "PASS" { stamp=$1 } END { if (stamp) print stamp }' .beads/verify.log 2>/dev/null)
 ```
 
 | Condition                                 | Action                                                 |

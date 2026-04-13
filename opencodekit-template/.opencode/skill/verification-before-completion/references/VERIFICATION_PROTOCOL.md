@@ -116,7 +116,7 @@ echo "$STAMP $(date -u +%Y-%m-%dT%H:%M:%SZ) PASS" >> .beads/verify.log
 ```bash
 # Read the most recent OCK verification stamp.
 # Ignore OMO completion entries like: session:<id> plan:<name> <timestamp> PASS|FAIL
-LAST_STAMP=$(grep -E '^[0-9a-f]{64} ' .beads/verify.log 2>/dev/null | tail -1 | awk '{print $1}')
+LAST_STAMP=$(awk '/^[0-9a-f]{64} / && $3 == "PASS" { stamp=$1 } END { if (stamp) print stamp }' .beads/verify.log 2>/dev/null)
 
 # Recompute current fingerprint (same formula as recording)
 CURRENT_STAMP=$(printf '%s\n%s\n%s' \
