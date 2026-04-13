@@ -9,10 +9,14 @@
 
 ## Gate Decision
 
-**Phase 2 may begin only when the following blocking contradictions are resolved:**
+**Phase 2 may begin. The following blocking contradictions have been RESOLVED:**
 
-1. **BC-1:** Bead checkpoint added before active state cleanup
-2. **BC-2:** Unified verification path defined with shared write-back to `.beads/verify.log`
+1. **BC-1:** ✅ Bead checkpoint added before active state cleanup
+2. **BC-2:** ✅ Unified verification path defined with shared write-back to `.beads/verify.log`
+
+**Resolution Evidence:**
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:11-77` — `writeBeadCheckpoint()` and `appendVerifyLog()` define the shared checkpoint + verify-log write-back helpers
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:184-191` — `/stop-continuation` writes the checkpoint before clearing state, then appends a conditional `PASS`/`FAIL` verify-log entry with `planName`
 
 ---
 
@@ -35,32 +39,36 @@ This reset bead (bd-l1s) produced seven domain audits (artifacts 02–07) and on
 
 ### BC-1: Verification Write-Back Gap
 
-**Status:** Unresolved
+**Status:** ✅ RESOLVED
 
-**Problem:** Active boulder state can be cleared via `/stop-continuation` without any durable bead checkpoint. This creates a gap where completion claims exist in runtime but not in bead artifacts.
+**Problem (Original):** Active boulder state can be cleared via `/stop-continuation` without any durable bead checkpoint. This creates a gap where completion claims exist in runtime but not in bead artifacts.
+
+**Resolution Applied:**
+- Added `writeBeadCheckpoint()` in `oh-my-openagent/src/plugin/bead-diagnostics.ts:11-47`
+- The helper writes session state to `.beads/artifacts/checkpoint-{sessionId}.json` before `clearBoulderState()` executes
+- Checkpoint captures: session_id, cleared_at, active_plan, plan_name, session_ids, task_sessions, worktree_path
 
 **Evidence:**
-- `omo/src/plugin/tool-execute-before.ts:178-183` — `clearBoulderState()` called without bead artifact sync
-- Artifact 07, Section "Key Finding: Write-Back Gap"
-
-**Required Resolution:**
-Add bead checkpoint mechanism that writes to `.beads/artifacts/<bead-id>/` before `clearBoulderState()` executes.
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:184-186` — `writeBeadCheckpoint(ctx.directory, sessionID)` runs before `clearBoulderState(ctx.directory)`
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:23-34` — the checkpoint payload is serialized to `.beads/artifacts/checkpoint-{sessionId}.json`
 
 ---
 
 ### BC-2: No Unified Verification Path
 
-**Status:** Unresolved
+**Status:** ✅ RESOLVED
 
-**Problem:** OCK verification (`/verify` + `.beads/verify.log`) and OMO hook-based verification operate independently. A bead can appear complete in OMO but incomplete in OCK, blocking handoff.
+**Problem (Original):** OCK verification (`/verify` + `.beads/verify.log`) and OMO hook-based verification operate independently. A bead can appear complete in OMO but incomplete in OCK, blocking handoff.
+
+**Resolution Applied:**
+- Added `appendVerifyLog()` in `oh-my-openagent/src/plugin/bead-diagnostics.ts:49-77`
+- On `/stop-continuation`, OMO appends a session completion entry to the shared `.beads/verify.log` using the format `session:{sessionId} plan:{planName} {timestamp} {PASS|FAIL}`
+- OCK verification guidance now treats those `session:` lines as shared completion evidence while cache lookups continue to read only stamp-shaped verification records
 
 **Evidence:**
-- `.opencode/command/verify.md` — OCK verification flow
-- `omo/src/hooks/todo-continuation-enforcer/` — OMO completion verification
-- Artifact 07, Finding 1: Dual Verification Systems
-
-**Required Resolution:**
-Define unified verification path where OMO hooks write completion evidence to `.beads/verify.log`, or coordinate `/verify` to detect OMO completion claims.
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:187-191` — `appendVerifyLog(ctx.directory, sessionID, checkpointSucceeded && clearSucceeded ? "PASS" : "FAIL", planName)` records conditional status with `planName`
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:49-63` — the helper writes `session:{sessionId} plan:{planName} {timestamp} {PASS|FAIL}` entries
+- `opencodekit-template/.opencode/command/verify.md` and `opencodekit-template/.opencode/skill/verification-before-completion/references/VERIFICATION_PROTOCOL.md` now document that cache reads must ignore non-stamp `session:` entries
 
 ---
 
@@ -79,10 +87,10 @@ The following findings are documented but do not block Phase 2:
 
 Before Phase 2 architecture work begins, the following must be implemented:
 
-| Prerequisite | Owner | Verification |
-|--------------|-------|--------------|
-| Bead checkpoint before state clear | OMO dev | `omo/src/plugin/tool-execute-before.ts` writes to `.beads/` before `clearBoulderState()` |
-| Unified verification write-back | OCK/OMO dev | `.beads/verify.log` updated by both OCK `/verify` and OMO completion hooks |
+| Prerequisite | Owner | Verification | Status |
+|--------------|-------|--------------|--------|
+| Bead checkpoint before state clear | OMO dev | `oh-my-openagent/src/plugin/tool-execute-before.ts` writes to `.beads/` before `clearBoulderState()` | ✅ Resolved |
+| Unified verification write-back | OCK/OMO dev | `.beads/verify.log` updated by both OCK `/verify` and OMO completion hooks | ✅ Resolved |
 
 ---
 
@@ -105,12 +113,12 @@ Before Phase 2 architecture work begins, the following must be implemented:
 | Artifact 04 (Planning Ownership) | ✅ Complete |
 | Artifact 05 (Memory/Context) | ✅ Complete |
 | Artifact 06 (Config Precedence) | ✅ Complete |
-| Artifact 07 (Verification/Writeback) | ⚠️ Blocking contradictions identified |
+| Artifact 07 (Verification/Writeback) | ✅ Blocking contradictions resolved |
 | Artifact 08 (Contradiction Map) | ✅ Complete |
-| BC-1 Resolution | ⏳ Pending |
-| BC-2 Resolution | ⏳ Pending |
+| BC-1 Resolution | ✅ Resolved |
+| BC-2 Resolution | ✅ Resolved |
 
-**Gate Status:** CLOSED — Phase 2 may NOT begin until BC-1 and BC-2 are resolved.
+**Gate Status:** OPEN — Phase 2 may now begin.
 
 ---
 

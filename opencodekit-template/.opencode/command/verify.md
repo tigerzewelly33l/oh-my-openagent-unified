@@ -45,12 +45,13 @@ skill({ name: "verification-before-completion" });
 Before running any gates, check if a recent verification is still valid:
 
 ```bash
-# Compute current state fingerprint (commit hash + diff)
-CURRENT_STAMP=$(printf '%s\n%s' \
+# Compute current state fingerprint (commit hash + diff + untracked file content)
+CURRENT_STAMP=$(printf '%s\n%s\n%s' \
   "$(git rev-parse HEAD)" \
   "$(git diff HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx')" \
+  "$(git ls-files --others --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.jsx' | xargs cat 2>/dev/null)" \
   | shasum -a 256 | cut -d' ' -f1)
-LAST_STAMP=$(tail -1 .beads/verify.log 2>/dev/null | awk '{print $1}')
+LAST_STAMP=$(awk '/^[0-9a-f]{64} / && $3 == "PASS" { stamp=$1 } END { if (stamp) print stamp }' .beads/verify.log 2>/dev/null)
 ```
 
 | Condition                                 | Action                                                 |
@@ -59,10 +60,12 @@ LAST_STAMP=$(tail -1 .beads/verify.log 2>/dev/null | awk '{print $1}')
 | `CURRENT_STAMP == LAST_STAMP`             | Report **cached PASS**, skip to Phase 2 (completeness) |
 | `CURRENT_STAMP != LAST_STAMP` or no cache | Run gates normally                                     |
 
+Only hash-prefixed verification records count as cache stamps. OMO `/stop-continuation` entries like `session:<id> plan:<name> ... PASS|FAIL` remain valid shared completion evidence, but they must be ignored by the cache reader.
+
 When cache hits, report:
 
 ```text
-Verification: cached PASS (no changes since <timestamp from verify.log>)
+Verification: cached PASS (no changes since the latest stamp-shaped verify.log entry)
 ```
 
 ## Phase 1: Gather Context

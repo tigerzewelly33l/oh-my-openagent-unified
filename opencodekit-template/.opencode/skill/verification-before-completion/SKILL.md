@@ -162,9 +162,10 @@ Total time = max(typecheck, lint) + test, not typecheck + lint + test.
 If you just verified and nothing changed, don't re-verify:
 
 1. After gates pass, record a stamp in `.beads/verify.log`
-2. Before running gates, compare current state to last stamp
-3. If match → report cached PASS, skip redundant work
-4. Cache is always bypassed for `--full` and ship/release
+2. Before running gates, compare current state to the latest stamp-shaped verification entry
+3. Ignore OMO completion entries like `session:<id> plan:<name> ... PASS|FAIL` when checking cache reuse
+4. If match → report cached PASS, skip redundant work
+5. Cache is always bypassed for `--full` and ship/release
 
 This matters when other commands need verification (e.g., closing beads, `/ship`). If you verified 30 seconds ago and made no changes, the cache lets you skip.
 
@@ -176,14 +177,14 @@ Prompt-level rules get ignored under pressure. These gates are **hard blocks** �
 
 Before ANY completion claim (bead close, PR creation, `/ship`, task completion):
 
-1. Check `.beads/verify.log` exists and contains a recent `PASS` stamp
+1. Check `.beads/verify.log` exists and contains a recent stamp-shaped verification `PASS` entry
 2. If verify.log is missing or stale (older than last file change) → **BLOCK** — run verification first
-3. If verify.log shows `FAIL` → **BLOCK** — do not proceed
+3. Do not treat OMO `session:<id> plan:<name> ... PASS|FAIL` entries as cache stamps or as proof that verification gates already passed
 
-```
-✅ verify.log exists, PASS within last edit window → proceed
+```text
+✅ verify.log exists, with a recent stamp-shaped PASS entry within the last edit window → proceed
 ❌ verify.log missing → STOP: "Run verification first"
-❌ verify.log shows FAIL → STOP: "Verification failed, fix before claiming complete"
+❌ only OMO session entries exist → STOP: "Run verification to write a cache stamp"
 ❌ verify.log stale (files changed since last PASS) → STOP: "Re-run verification"
 ```
 
