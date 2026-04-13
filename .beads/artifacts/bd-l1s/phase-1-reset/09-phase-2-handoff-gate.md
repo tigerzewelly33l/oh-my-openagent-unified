@@ -15,8 +15,8 @@
 2. **BC-2:** ✅ Unified verification path defined with shared write-back to `.beads/verify.log`
 
 **Resolution Evidence:**
-- `oh-my-openagent/src/plugin/tool-execute-before.ts:20-53` — `writeBeadCheckpoint()` writes session state to `.beads/artifacts/` before `clearBoulderState()` (line 254)
-- `oh-my-openagent/src/plugin/tool-execute-before.ts:56-83` — `appendVerifyLog()` writes completion entry to `.beads/verify.log` on `/stop-continuation` (line 256)
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:11-77` — `writeBeadCheckpoint()` and `appendVerifyLog()` define the shared checkpoint + verify-log write-back helpers
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:184-191` — `/stop-continuation` writes the checkpoint before clearing state, then appends a conditional `PASS`/`FAIL` verify-log entry with `planName`
 
 ---
 
@@ -44,13 +44,13 @@ This reset bead (bd-l1s) produced seven domain audits (artifacts 02–07) and on
 **Problem (Original):** Active boulder state can be cleared via `/stop-continuation` without any durable bead checkpoint. This creates a gap where completion claims exist in runtime but not in bead artifacts.
 
 **Resolution Applied:**
-- Added `writeBeadCheckpoint()` function in `oh-my-openagent/src/plugin/tool-execute-before.ts:20-53`
-- Checkpoint writes session state to `.beads/artifacts/checkpoint-{sessionId}.json` before `clearBoulderState()` executes (line 254)
+- Added `writeBeadCheckpoint()` in `oh-my-openagent/src/plugin/bead-diagnostics.ts:11-47`
+- The helper writes session state to `.beads/artifacts/checkpoint-{sessionId}.json` before `clearBoulderState()` executes
 - Checkpoint captures: session_id, cleared_at, active_plan, plan_name, session_ids, task_sessions, worktree_path
 
 **Evidence:**
-- `oh-my-openagent/src/plugin/tool-execute-before.ts:254` — `writeBeadCheckpoint(ctx.directory, sessionID)` called before `clearBoulderState(ctx.directory)`
-- File written: `.beads/artifacts/checkpoint-{sessionId}.json`
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:184-186` — `writeBeadCheckpoint(ctx.directory, sessionID)` runs before `clearBoulderState(ctx.directory)`
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:23-34` — the checkpoint payload is serialized to `.beads/artifacts/checkpoint-{sessionId}.json`
 
 ---
 
@@ -61,14 +61,14 @@ This reset bead (bd-l1s) produced seven domain audits (artifacts 02–07) and on
 **Problem (Original):** OCK verification (`/verify` + `.beads/verify.log`) and OMO hook-based verification operate independently. A bead can appear complete in OMO but incomplete in OCK, blocking handoff.
 
 **Resolution Applied:**
-- Added `appendVerifyLog()` function in `oh-my-openagent/src/plugin/tool-execute-before.ts:56-83`
-- On `/stop-continuation`, writes session completion entry to `.beads/verify.log` with format: `session:{sessionId} plan:{planName} {timestamp} {PASS|FAIL}`
-- OCK `/verify` can now detect OMO completion claims by reading `verify.log`
+- Added `appendVerifyLog()` in `oh-my-openagent/src/plugin/bead-diagnostics.ts:49-77`
+- On `/stop-continuation`, OMO appends a session completion entry to the shared `.beads/verify.log` using the format `session:{sessionId} plan:{planName} {timestamp} {PASS|FAIL}`
+- OCK verification guidance now treats those `session:` lines as shared completion evidence while cache lookups continue to read only stamp-shaped verification records
 
 **Evidence:**
-- `oh-my-openagent/src/plugin/tool-execute-before.ts:256` — `appendVerifyLog(ctx.directory, sessionID, "PASS")` called after `clearBoulderState()`
-- Log format: `session:abc123 plan:ock-omo-unified-mvp 2026-04-09T03:00:00Z PASS`
-- Both OCK and OMO now write to the same `.beads/verify.log`
+- `oh-my-openagent/src/plugin/tool-execute-before.ts:187-191` — `appendVerifyLog(ctx.directory, sessionID, checkpointSucceeded && clearSucceeded ? "PASS" : "FAIL", planName)` records conditional status with `planName`
+- `oh-my-openagent/src/plugin/bead-diagnostics.ts:49-63` — the helper writes `session:{sessionId} plan:{planName} {timestamp} {PASS|FAIL}` entries
+- `opencodekit-template/.opencode/command/verify.md` and `opencodekit-template/.opencode/skill/verification-before-completion/references/VERIFICATION_PROTOCOL.md` now document that cache reads must ignore non-stamp `session:` entries
 
 ---
 
