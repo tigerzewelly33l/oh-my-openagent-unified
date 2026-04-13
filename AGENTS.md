@@ -56,13 +56,13 @@ This workspace root is a coordination container, not a single product runtime. I
 
 <!-- gitnexus:start -->
 
-# GitNexus — Code Intelligence
+## GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **ock-omo-system** (8668 symbols, 25317 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
-## Always Do
+### Always Do
 
 - **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
 - **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
@@ -70,27 +70,27 @@ This project is indexed by GitNexus as **ock-omo-system** (8668 symbols, 25317 r
 - When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
 - When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
 
-## When Debugging
+### When Debugging
 
 1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
 2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
 3. `READ gitnexus://repo/ock-omo-system/process/{processName}` — trace the full execution flow step by step
 4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
 
-## When Refactoring
+### When Refactoring
 
 - **Renaming**: MUST use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` first. Review the preview — graph edits are safe, text_search edits need manual review. Then run with `dry_run: false`.
 - **Extracting/Splitting**: MUST run `gitnexus_context({name: "target"})` to see all incoming/outgoing refs, then `gitnexus_impact({target: "target", direction: "upstream"})` to find all external callers before moving code.
 - After any refactor: run `gitnexus_detect_changes({scope: "all"})` to verify only expected files changed.
 
-## Never Do
+### Never Do
 
 - NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
 - NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
 - NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
 - NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
 
-## Tools Quick Reference
+### Tools Quick Reference
 
 | Tool             | When to use                   | Command                                                                 |
 | ---------------- | ----------------------------- | ----------------------------------------------------------------------- |
@@ -101,7 +101,7 @@ This project is indexed by GitNexus as **ock-omo-system** (8668 symbols, 25317 r
 | `rename`         | Safe multi-file rename        | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
 | `cypher`         | Custom graph queries          | `gitnexus_cypher({query: "MATCH ..."})`                                 |
 
-## Impact Risk Levels
+### Impact Risk Levels
 
 | Depth | Meaning                               | Action                |
 | ----- | ------------------------------------- | --------------------- |
@@ -109,7 +109,7 @@ This project is indexed by GitNexus as **ock-omo-system** (8668 symbols, 25317 r
 | d=2   | LIKELY AFFECTED — indirect deps       | Should test           |
 | d=3   | MAY NEED TESTING — transitive         | Test if critical path |
 
-## Resources
+### Resources
 
 | Resource                                        | Use for                                  |
 | ----------------------------------------------- | ---------------------------------------- |
@@ -118,7 +118,7 @@ This project is indexed by GitNexus as **ock-omo-system** (8668 symbols, 25317 r
 | `gitnexus://repo/ock-omo-system/processes`      | All execution flows                      |
 | `gitnexus://repo/ock-omo-system/process/{name}` | Step-by-step execution trace             |
 
-## Self-Check Before Finishing
+### Self-Check Before Finishing
 
 Before completing any code modification task, verify:
 
@@ -127,7 +127,7 @@ Before completing any code modification task, verify:
 3. `gitnexus_detect_changes()` confirms changes match expected scope
 4. All d=1 (WILL BREAK) dependents were updated
 
-## Keeping the Index Fresh
+### Keeping the Index Fresh
 
 After committing code changes, the GitNexus index becomes stale. Re-run analyze to update it:
 
@@ -145,7 +145,7 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 > Claude Code users: A PostToolUse hook handles this automatically after `git commit` and `git merge`.
 
-## CLI
+### CLI
 
 | Task                                         | Read this skill file                                        |
 | -------------------------------------------- | ----------------------------------------------------------- |
