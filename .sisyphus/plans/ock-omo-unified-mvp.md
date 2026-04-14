@@ -1,23 +1,29 @@
 # Unified OCK + OMO MVP Architecture
 
 ## TL;DR
+
 > **Summary**: Create a root-level `MVP.md` that defines one unified product with `ock` as the user-facing entry, `oh-my-openagent` as the runtime/orchestration engine, and Rust-backed task lifecycle support without duplicating orchestration ownership.
 > **Deliverables**:
+>
 > - `/work/ock-omo-system/MVP.md`
 > - Capability Ownership Matrix + Bridge Matrix inside `MVP.md`
 > - Runtime / Toolchain / Naming / Config contracts inside `MVP.md`
 > - Migration paths + executable smoke-test appendix inside `MVP.md`
-> **Effort**: Short
-> **Parallel**: YES - 2 waves
-> **Critical Path**: 1 → (2, 3, 4, 5) → 6 → 7 → 8 → 9
+
+**Effort**: Short
+**Parallel**: YES - 2 waves
+**Critical Path**: 1 → (2, 3, 4, 5) → 6 → 7 → 8 → 9
 
 ## Context
+
 ### Original Request
+
 - User wants the two systems to "work as one".
 - User stated that OCK should remain organized around Rust-backed task handling, while OMO contributes stronger agent orchestration.
 - User proposed `MVP.md` as the next artifact to give the combined project direction.
 
 ### Interview Summary
+
 - MVP orientation: architecture-first, not prototype-first.
 - Product shape: one unified product.
 - Primary entry point: `ock` is the front door.
@@ -26,6 +32,7 @@
 - Duplication strategy: compatibility bridge first, not hard removal.
 
 ### Discovery
+
 - Workspace root explicitly says this is **not** a runnable monorepo and that the two products have different toolchains and assumptions: `/work/ock-omo-system/AGENTS.md:8-16`, `/work/ock-omo-system/AGENTS.md:27-47`.
 - OCK already owns the packaged `ock` CLI, template distribution, and governance scripts: `opencodekit-template/package.json:23-49`, `opencodekit-template/src/index.ts:35-84`, `opencodekit-template/src/index.ts:146-217`.
 - OCK init/upgrade semantics preserve user-owned areas and can skip project-level directories when global config already covers them, which is critical for bridge placement: `opencodekit-template/src/commands/init.ts:40-49`, `opencodekit-template/src/commands/init.ts:60-99`, `opencodekit-template/src/commands/init.ts:186-225`, `opencodekit-template/src/commands/upgrade.ts:29-45`, `opencodekit-template/src/commands/upgrade.ts:113-189`, `opencodekit-template/src/commands/upgrade.ts:192-259`.
@@ -35,17 +42,22 @@
 - OCK’s own internal research already flags overlap/redundancy and context/tool-load problems, which supports a deliberate owner-per-capability MVP: `opencodekit-template/.opencode/memory/research/effectiveness-audit.md:171-197`, `opencodekit-template/.opencode/memory/research/context-management-analysis.md:13-16`, `opencodekit-template/.opencode/memory/research/context-management-analysis.md:75-83`, `opencodekit-template/.opencode/memory/research/context-management-analysis.md:126-163`.
 
 ### Metis Review (gaps addressed)
+
 - Freeze one owner per capability; never leave duplicate runtime ownership implicit.
 - Treat “one unified product” as a product-surface decision, **not** a root build/repo merge in MVP.
 - Do not claim OMO already replaces OCK memory without proof; default memory ownership to OCK/deferred until parity is explicitly established.
 - Define bridge behavior, precedence, migration, and removal triggers inside the MVP doc itself.
 - Keep Rust as a bounded execution/task-lifecycle contract under OMO orchestration, not a second scheduler.
+- Freeze the target model as dual-store, single-control-plane, with `.beads` as the durable user-facing surface, `.sisyphus` as rebuildable runtime state, `ock` as public authority, and OMO as the internal runtime engine.
 
 ## Work Objectives
+
 ### Core Objective
+
 Produce `/work/ock-omo-system/MVP.md` as the canonical architecture document for the unified product, with explicit ownership, compatibility, migration, and verification rules so future implementation can proceed without re-deciding product boundaries.
 
 ### Deliverables
+
 - A root-level `MVP.md` with fixed section structure and no unresolved placeholders.
 - A capability ownership table covering all overlapping OCK/OMO/Rust surfaces.
 - A bridge/deprecation table with explicit removal triggers.
@@ -55,6 +67,7 @@ Produce `/work/ock-omo-system/MVP.md` as the canonical architecture document for
 - An executable acceptance-suite appendix describing future smoke tests and expected artifacts.
 
 ### Definition of Done (verifiable conditions with commands)
+
 ```bash
 test -f "/work/ock-omo-system/MVP.md"
 
@@ -105,6 +118,7 @@ PY
 ```
 
 ### Must Have
+
 - One explicit MVP owner for every overlapping capability.
 - One explicit public entry point: `ock`.
 - One explicit runtime/orchestration owner: OMO.
@@ -114,6 +128,7 @@ PY
 - One explicit bridge removal trigger per temporary adapter/shim.
 
 ### Must NOT Have
+
 - No root monorepo/toolchain merge as part of this MVP artifact.
 - No rewrite of OCK memory pipeline in MVP.
 - No blanket rewrite of OCK slash commands in MVP.
@@ -123,13 +138,17 @@ PY
 - No implementation tasks outside architecture/document direction.
 
 ## Verification Strategy
+
 > ZERO HUMAN INTERVENTION - all verification is agent-executed.
+
 - Test decision: tests-after. This is a document-first architecture artifact; verification is content validation + source-grounding.
 - QA policy: Every task includes agent-executable content checks. `MVP.md` must also include an exact future smoke-test appendix for the later implementation phase.
 - Evidence: `.sisyphus/evidence/task-{N}-{slug}.txt`
 
 ## Execution Strategy
+
 ### Parallel Execution Waves
+
 > Target: 5-8 tasks per wave. Extract shared dependencies first, then draft and review once ownership decisions are frozen.
 
 Wave 1: 1) doc skeleton + decision ledger, 2) capability ownership matrix, 3) naming/packaging contract, 4) runtime/toolchain/Rust contract, 5) config/command/skill precedence contract
@@ -138,26 +157,27 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
 
 ### Dependency Matrix (full, all tasks)
 
-| Task | Depends On | Blocks |
-|------|------------|--------|
-| 1 | — | 7 |
-| 2 | — | 7, 9 |
-| 3 | — | 6, 7, 8, 9 |
-| 4 | — | 7, 8, 9 |
-| 5 | — | 6, 7, 8, 9 |
-| 6 | 3, 5 | 7, 8, 9 |
-| 7 | 1, 2, 3, 4, 5, 6 | 8, 9 |
-| 8 | 3, 4, 5, 6, 7 | 9 |
-| 9 | 2, 3, 4, 5, 6, 7, 8 | F1-F4 |
+| Task | Depends On          | Blocks     |
+| ---- | ------------------- | ---------- |
+| 1    | —                   | 7          |
+| 2    | —                   | 7, 9       |
+| 3    | —                   | 6, 7, 8, 9 |
+| 4    | —                   | 7, 8, 9    |
+| 5    | —                   | 6, 7, 8, 9 |
+| 6    | 3, 5                | 7, 8, 9    |
+| 7    | 1, 2, 3, 4, 5, 6    | 8, 9       |
+| 8    | 3, 4, 5, 6, 7       | 9          |
+| 9    | 2, 3, 4, 5, 6, 7, 8 | F1-F4      |
 
 ### Agent Dispatch Summary
 
-| Wave | Task Count | Categories |
-|------|------------|------------|
-| 1 | 5 | `writing` x1, `deep` x4 |
-| 2 | 4 | `deep` x1, `writing` x2, `unspecified-high` x1 |
+| Wave | Task Count | Categories                                     |
+| ---- | ---------- | ---------------------------------------------- |
+| 1    | 5          | `writing` x1, `deep` x4                        |
+| 2    | 4          | `deep` x1, `writing` x2, `unspecified-high` x1 |
 
 ## TODOs
+
 <!-- TASKS INSERT HERE -->
 
 - [x] 1. Create the `MVP.md` skeleton and decision ledger
@@ -183,6 +203,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] No line in `MVP.md` contains `TBD`, `[DECISION NEEDED`, or equivalent placeholders.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Skeleton created with required sections
     Tool: Bash
@@ -223,6 +244,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] No row uses vague ownership terms like “both”, “hybrid”, or “shared runtime” without a narrow explanatory clause.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Ownership table covers all mandatory capabilities
     Tool: Bash
@@ -265,6 +287,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] `MVP.md` states that MVP product unification does not require root toolchain unification.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Naming contract is explicit
     Tool: Bash
@@ -306,6 +329,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] Rust responsibilities include execution semantics but exclude orchestration ownership.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Toolchain matrix is complete
     Tool: Bash
@@ -348,6 +372,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] `MVP.md` includes a specific stance on session tools and skill-MCP bridge ownership.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Compatibility contract names precedence explicitly
     Tool: Bash
@@ -387,6 +412,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] `MVP.md` defines where bridge-managed files live and why they remain upgradeable.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Migration section covers all three user states
     Tool: Bash
@@ -427,6 +453,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] `MVP.md` makes no statements that conflict with the source-grounded findings cited in this plan.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Full document passes structure and terminology checks
     Tool: Bash
@@ -467,6 +494,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] The suite covers dual-repo verification plus unified-product compatibility behavior.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Acceptance suite includes all mandatory smoke tests
     Tool: Bash
@@ -507,6 +535,7 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   - [x] `MVP.md` contains explicit bridge removal triggers and does not normalize permanent duplication.
 
   **QA Scenarios** (MANDATORY - task incomplete without these):
+
   ```
   Scenario: Consistency pass verifies critical claims
     Tool: Bash
@@ -524,19 +553,23 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
   **Commit**: NO | Message: `docs(mvp): review architecture consistency` | Files: [`/work/ock-omo-system/MVP.md`]
 
 ## Final Verification Wave (MANDATORY — after ALL implementation tasks)
+
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
-- [x] F1. Plan Compliance Audit — oracle
-- [x] F2. Document Quality Review — unspecified-high
-- [x] F3. Real Manual QA — unspecified-high
-- [x] F4. Scope Fidelity Check — deep
+
+- [ ] F1. Plan Compliance Audit — oracle
+- [ ] F2. Document Quality Review — unspecified-high
+- [ ] F3. Real Manual QA — unspecified-high
+- [ ] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
+
 - Do not commit as part of MVP document creation unless the user explicitly requests it.
 - If the user later requests a commit after approval, use a docs-scoped message that only stages the new architecture artifact and any directly related root-level docs, e.g. `docs(mvp): define unified ock-omo architecture`.
 
 ## Success Criteria
+
 - `MVP.md` exists at workspace root and can be used as the single direction-setting architecture doc for the combined project.
 - The document freezes ownership for every overlapping capability with no ambiguous “shared” runtime rows.
 - The document preserves `ock` as the front door, OMO as the runtime engine, and Rust as a bounded task-lifecycle contract.

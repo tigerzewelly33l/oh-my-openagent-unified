@@ -19,17 +19,81 @@ The MVP turns OCK + OMO into **one product with one front door**.
 
 The outcome we want is simple: a user feels like they are using one coherent system, while internally the responsibilities are clean enough that future work does not reintroduce duplicate runtime ownership.
 
+## Frozen Control-Plane Contract
+
+The target model for this integration story is **dual-store, single-control-plane**.
+
+- `.beads` remains the documented durable and user-facing state surface.
+- Behind the public `ock` surface, `.sisyphus` holds rebuildable runtime and planning state.
+- `ock` serves as the public command authority.
+- OMO handles the internal runtime and orchestration engine.
+- This contract does not permit a literal storage merge between `.beads` and `.sisyphus`.
+
+### State Taxonomy
+
+| State Type                           | Contract                                                                                                                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| durable task ledger                  | Durable bead identity, status, dependencies, readiness, and related ledger truth live in `.beads` and stay user-visible.                                                      |
+| durable manifest index               | The schema-1 durable manifest inventory lives at `.beads/artifacts/manifests/index.schema-1.json` and records the canonical published artifact index for the unified surface. |
+| published plan snapshots             | Durable published plan history and inventory live in `.beads/artifacts/plan-snapshots/*` and can be inspected without reading `.sisyphus`.                                    |
+| published plan manifests             | Per-bead schema-1 plan manifests live at `.beads/artifacts/plan-snapshots/<bead-id>/manifest.schema-1.json` and describe the durable snapshot set for that bead.              |
+| durable runtime attachment registry  | The schema-1 runtime attachment registry lives at `.beads/artifacts/runtime-attachments/registry.schema-1.json` and inventories runtime-owned durable attachments.            |
+| durable runtime checkpoint artifacts | Recovery and inspection artifacts for runtime checkpoints live in `.beads/artifacts/runtime-checkpoints/*`.                                                                   |
+| active runtime checkpoint state      | The currently active runtime checkpoint and handoff state live in `.sisyphus` and are rebuildable from durable sources.                                                       |
+| ephemeral/session runtime state      | Session-local continuation, orchestration, and transient runtime state live in `.sisyphus` and are disposable.                                                                |
+| diagnostics metadata                 | Diagnostics may read both stores, but the durable user-facing diagnostic record belongs with `.beads` inventory while active repair metadata may be rebuilt in `.sisyphus`.   |
+| derived caches                       | Recomputable caches remain non-canonical and may be discarded and rebuilt.                                                                                                    |
+
+### Authority Matrix
+
+| State Type                           | Canonical Store                                                                  | Supported Writers                                          | Supported Readers                         | Rebuild Source                                                                                                 | Failure Owner                                              | User Visibility                          |
+| ------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------- |
+| durable task ledger                  | `.beads` via `br`                                                                | `ock` workflows and `br`                                   | `ock`, OMO, users, supporting diagnostics | Not rebuilt from `.sisyphus`; durable ledger truth stays in `.beads`                                           | OCK + `br`                                                 | User-facing                              |
+| durable manifest index               | `.beads/artifacts/manifests/index.schema-1.json`                                 | `ock` public publish and inventory flows                   | `ock`, OMO, users, diagnostics            | Rebuilt from durable schema-1 artifact namespaces in `.beads`                                                  | OCK                                                        | User-facing                              |
+| published plan snapshots             | `.beads/artifacts/plan-snapshots/*`                                              | `ock` public publish flows                                 | `ock`, OMO, users                         | Published snapshot artifacts in `.beads`                                                                       | OCK                                                        | User-facing                              |
+| published plan manifests             | `.beads/artifacts/plan-snapshots/<bead-id>/manifest.schema-1.json`               | `ock` public publish flows                                 | `ock`, OMO, users, diagnostics            | Rebuilt from the bead's durable snapshot artifacts in `.beads`                                                 | OCK                                                        | User-facing                              |
+| durable runtime attachment registry  | `.beads/artifacts/runtime-attachments/registry.schema-1.json`                    | OMO internal runtime flows behind `ock`                    | `ock`, OMO, users, diagnostics            | Rebuilt from durable runtime-owned attachment artifacts in `.beads`                                            | OMO                                                        | User-visible for recovery and inspection |
+| durable runtime checkpoint artifacts | `.beads/artifacts/runtime-checkpoints/*`                                         | OMO internal runtime flows behind `ock`                    | `ock`, OMO, users, diagnostics            | Durable checkpoint artifacts in `.beads`                                                                       | OMO                                                        | User-visible for recovery and inspection |
+| active runtime checkpoint state      | `.sisyphus`                                                                      | OMO internal runtime flows                                 | OMO, `ock` diagnostics and repair flows   | `.beads` ledger truth + published artifacts + durable runtime checkpoint artifacts + checked-out code revision | OMO                                                        | Internal                                 |
+| ephemeral/session runtime state      | `.sisyphus`                                                                      | OMO internal runtime flows                                 | OMO and `ock` diagnostics                 | Rebuilt from current runtime context or discarded                                                              | OMO                                                        | Internal                                 |
+| diagnostics metadata                 | `.beads` for durable diagnostic inventory, `.sisyphus` for active repair context | `ock` public diagnostics, OMO internal runtime diagnostics | `ock`, OMO, users                         | Durable inventory from `.beads`, active context from `.sisyphus`                                               | OCK for public diagnostics, OMO for active runtime details | User-facing through `ock`                |
+| derived caches                       | `.sisyphus` or other rebuildable cache locations                                 | `ock` and OMO as needed                                    | `ock`, OMO                                | Recomputed from canonical stores                                                                               | Owning runtime that generated the cache                    | Internal                                 |
+
+### Public and Internal Command Policy
+
+- `ock` is the public command authority for init, upgrade, diagnostics, repair, and published plan flows.
+- OMO is the internal runtime and orchestration engine for this integration story.
+- `.beads` remains the documented durable state surface for users.
+- `.sisyphus` may be rebuilt from `.beads` plus durable manifests and checked-out code, but it must never promote itself into durable truth.
+
+### Schema-1 Artifact Namespace Contract
+
+All durable artifacts under `.beads/artifacts/*` must use typed schema-1 namespaces instead of a flat shared dump. The frozen topology for this integration story is:
+
+- `.beads/artifacts/manifests/index.schema-1.json`
+- `.beads/artifacts/plan-snapshots/<bead-id>/manifest.schema-1.json`
+- `.beads/artifacts/plan-snapshots/<bead-id>/snapshots/<timestamp>-<hash>.md`
+- `.beads/artifacts/runtime-attachments/registry.schema-1.json`
+- `.beads/artifacts/runtime-checkpoints/checkpoint-<session-id>.schema-1.json`
+
+Namespace ownership is strict:
+
+- `ock` writes the durable manifest/index and published plan-snapshot namespaces.
+- OMO writes only the runtime-owned namespaces for runtime attachments and runtime checkpoints.
+- Diagnostics may read legacy flat artifact paths during the compatibility window, but new writes must target only the schema-1 namespace layout.
+- Every schema-1 artifact records producer metadata, schema version, and write timestamp provenance; per-bead plan manifests also record bead ID, source plan path, content hash, and optional `latestSnapshot`.
+
 ## Decision Ledger
 
-| Decision | Answer | Why it is frozen now |
-|---|---|---|
-| Product shape | One unified product | The user wants the two systems to work as one, not as a loose federation. |
-| Public entry point | `ock` | OCK already owns the packaged CLI, init/upgrade flow, and distribution surface. |
-| Runtime orchestration owner | OMO | OMO already owns background task orchestration, config registration, command/skill loading, and session/runtime surfaces. |
-| Rust direction | `beads_rust` is the Rust task substrate | The user explicitly wants Rust in the task story, but current repo evidence supports task state/dependency ownership, not a Rust scheduler. |
-| Duplication strategy | Compatibility bridge first | This reduces migration risk while still freezing a winning owner per capability. |
-| Runtime naming | Canonical `oh-my-openagent`, legacy `oh-my-opencode` accepted during MVP | OMO already supports canonical + legacy naming compatibility and migration behavior. |
-| Repo/toolchain strategy | No root monorepo/toolchain merge in MVP | The workspace explicitly remains two products today, with different toolchains and assumptions. |
+| Decision                    | Answer                                                                   | Why it is frozen now                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product shape               | One unified product                                                      | The user wants the two systems to work as one, not as a loose federation.                                                                   |
+| Public entry point          | `ock`                                                                    | OCK already owns the packaged CLI, init/upgrade flow, and distribution surface.                                                             |
+| Runtime orchestration owner | OMO                                                                      | OMO already owns background task orchestration, config registration, command/skill loading, and session/runtime surfaces.                   |
+| Rust direction              | `beads_rust` is the Rust task substrate                                  | The user explicitly wants Rust in the task story, but current repo evidence supports task state/dependency ownership, not a Rust scheduler. |
+| Duplication strategy        | Compatibility bridge first                                               | This reduces migration risk while still freezing a winning owner per capability.                                                            |
+| Runtime naming              | Canonical `oh-my-openagent`, legacy `oh-my-opencode` accepted during MVP | OMO already supports canonical + legacy naming compatibility and migration behavior.                                                        |
+| Repo/toolchain strategy     | No root monorepo/toolchain merge in MVP                                  | The workspace explicitly remains two products today, with different toolchains and assumptions.                                             |
 
 ## Non-Goals
 
@@ -78,33 +142,33 @@ OMO Runtime (Bun)
 
 ## Capability Ownership Matrix
 
-| Capability | Current OCK role | Current OMO role | MVP owner | Bridge in MVP | Post-MVP fate |
-|---|---|---|---|---|---|
-| Project init / bootstrap | Owns `ock init` and project scaffolding | No primary role | **OCK** | `ock init` installs OMO-compatible runtime config and bridge-managed project files | Stays in OCK |
-| Project upgrade / template evolution | Owns `ock upgrade` and template refresh semantics | No primary role | **OCK** | `ock upgrade` updates bridge-managed files while preserving user-owned areas | Stays in OCK |
-| Validation / governance checks | Owns template validation and governance scripts | No primary role | **OCK** | OCK continues to own docs/skill/command validation and template integrity | Stays in OCK |
-| Doctor/status diagnostics | Owns CLI-visible project health/status surface | No primary role | **OCK** | OCK reports unified product health and installed runtime state | Stays in OCK |
-| Workflow slash-command content and defaults | Authors/distributes command content in template payload | Executes those commands through runtime semantics | **OCK** | Commands remain authored/distributed by OCK, but must target OMO runtime semantics | Mostly stays in OCK |
-| Command loading and precedence | Ships project command files | Owns runtime command merge pipeline | **OMO** | OCK-authored commands are loaded through OMO’s command merge pipeline | Stays in OMO |
-| Skill loading and precedence | Ships project skill files | Owns runtime skill discovery and precedence | **OMO** | OCK-authored skills are loaded through OMO’s skill loader and scope rules | Stays in OMO |
-| Config merge / runtime registration | Generates or updates project runtime config | Owns runtime config interpretation and migration | **OMO** | Unified project config is interpreted by OMO, including legacy-name migration | Stays in OMO |
-| Background orchestration | May trigger workflows that need execution | Owns background manager and orchestration lifecycle | **OMO** | Any OCK workflow that launches work must route through OMO task orchestration | Stays in OMO |
-| Session browsing / reading / search tools | Ships older session-plugin-shaped assumptions in some project content | Owns authoritative `session_*` runtime tools | **OMO** | OCK content must target OMO `session_*` tools or temporary aliases | OCK runtime session plugin removed |
-| Skill-scoped MCP runtime lifecycle | Ships skill metadata and an older skill-MCP plugin surface | Owns authoritative skill-MCP runtime lifecycle | **OMO** | Keep OCK skill-local metadata formats, but OMO owns client lifecycle and tool exposure | OCK runtime skill-MCP plugin removed |
-| Memory system | Owns current project memory runtime/content model | Has adjacent runtime capabilities but not proven parity | **OCK (deferred runtime consolidation)** | No forced ownership transfer in MVP; document explicit deferment until parity is proven | Revisit after parity design |
-| Rust task lifecycle substrate | Exposes `br` / beads_rust task workflows via project/tooling conventions | Consumes task state for orchestration decisions | **beads_rust** | OMO reads or integrates with task state via `br` JSON or beads MCP; no duplicate task DB should become primary | Stays in Rust |
-| Task execution scheduling, polling, cancellation, notifications | No primary orchestration owner | Owns runtime scheduling and lifecycle control | **OMO** | `beads_rust` may select work; OMO still launches and supervises agent work | Stays in OMO |
-| Task worker implementation substrate where Rust is introduced | May choose to ship supporting project/tooling affordances later | Retains orchestration control even if invoking Rust workers | **Deferred under OMO control** | Rust workers, if added, remain invoked by OMO rather than becoming a second control plane | Revisit after MVP |
+| Capability                                                      | Current OCK role                                                         | Current OMO role                                            | MVP owner                                | Bridge in MVP                                                                                                  | Post-MVP fate                        |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Project init / bootstrap                                        | Owns `ock init` and project scaffolding                                  | No primary role                                             | **OCK**                                  | `ock init` installs OMO-compatible runtime config and bridge-managed project files                             | Stays in OCK                         |
+| Project upgrade / template evolution                            | Owns `ock upgrade` and template refresh semantics                        | No primary role                                             | **OCK**                                  | `ock upgrade` updates bridge-managed files while preserving user-owned areas                                   | Stays in OCK                         |
+| Validation / governance checks                                  | Owns template validation and governance scripts                          | No primary role                                             | **OCK**                                  | OCK continues to own docs/skill/command validation and template integrity                                      | Stays in OCK                         |
+| Doctor/status diagnostics                                       | Owns CLI-visible project health/status surface                           | No primary role                                             | **OCK**                                  | OCK reports unified product health and installed runtime state                                                 | Stays in OCK                         |
+| Workflow slash-command content and defaults                     | Authors/distributes command content in template payload                  | Executes those commands through runtime semantics           | **OCK**                                  | Commands remain authored/distributed by OCK, but must target OMO runtime semantics                             | Mostly stays in OCK                  |
+| Command loading and precedence                                  | Ships project command files                                              | Owns runtime command merge pipeline                         | **OMO**                                  | OCK-authored commands are loaded through OMO’s command merge pipeline                                          | Stays in OMO                         |
+| Skill loading and precedence                                    | Ships project skill files                                                | Owns runtime skill discovery and precedence                 | **OMO**                                  | OCK-authored skills are loaded through OMO’s skill loader and scope rules                                      | Stays in OMO                         |
+| Config merge / runtime registration                             | Generates or updates project runtime config                              | Owns runtime config interpretation and migration            | **OMO**                                  | Unified project config is interpreted by OMO, including legacy-name migration                                  | Stays in OMO                         |
+| Background orchestration                                        | May trigger workflows that need execution                                | Owns background manager and orchestration lifecycle         | **OMO**                                  | Any OCK workflow that launches work must route through OMO task orchestration                                  | Stays in OMO                         |
+| Session browsing / reading / search tools                       | Ships older session-plugin-shaped assumptions in some project content    | Owns authoritative `session_*` runtime tools                | **OMO**                                  | OCK content must target OMO `session_*` tools or temporary aliases                                             | OCK runtime session plugin removed   |
+| Skill-scoped MCP runtime lifecycle                              | Ships skill metadata and an older skill-MCP plugin surface               | Owns authoritative skill-MCP runtime lifecycle              | **OMO**                                  | Keep OCK skill-local metadata formats, but OMO owns client lifecycle and tool exposure                         | OCK runtime skill-MCP plugin removed |
+| Memory system                                                   | Owns current project memory runtime/content model                        | Has adjacent runtime capabilities but not proven parity     | **OCK (deferred runtime consolidation)** | No forced ownership transfer in MVP; document explicit deferment until parity is proven                        | Revisit after parity design          |
+| Rust task lifecycle substrate                                   | Exposes `br` / beads_rust task workflows via project/tooling conventions | Consumes task state for orchestration decisions             | **beads_rust**                           | OMO reads or integrates with task state via `br` JSON or beads MCP; no duplicate task DB should become primary | Stays in Rust                        |
+| Task execution scheduling, polling, cancellation, notifications | No primary orchestration owner                                           | Owns runtime scheduling and lifecycle control               | **OMO**                                  | `beads_rust` may select work; OMO still launches and supervises agent work                                     | Stays in OMO                         |
+| Task worker implementation substrate where Rust is introduced   | May choose to ship supporting project/tooling affordances later          | Retains orchestration control even if invoking Rust workers | **Deferred under OMO control**           | Rust workers, if added, remain invoked by OMO rather than becoming a second control plane                      | Revisit after MVP                    |
 
 ## Bridge Matrix
 
-| Duplicate / overlapping surface | Winning owner | Temporary bridge behavior | Precedence rule | Removal trigger |
-|---|---|---|---|---|
-| OCK session plugin surface vs OMO session tools | **OMO** | OCK-authored commands/skills may keep compatibility wrappers or alias references while migrating to `session_list`, `session_read`, `session_search`, and `session_info` | OMO runtime tools are authoritative | Remove when distributed OCK content no longer depends on the old session plugin surface and unified smoke tests pass without it |
-| OCK skill-MCP plugin vs OMO skill-MCP runtime | **OMO** | Preserve skill-local metadata formats (`mcp.json` / YAML frontmatter) but let OMO own client lifecycle, connection management, and tool exposure | OMO runtime behavior wins; OCK only authors metadata/content | Remove when all skill-scoped MCP scenarios pass through OMO with no OCK plugin runtime dependency |
-| OCK runtime-shaped slash commands vs OMO runtime semantics | **OMO for runtime, OCK for content** | Commands stay distributed by OCK but must call OMO agents/tools/categories rather than invent alternate runtime logic | Runtime semantics follow OMO; authored command text follows OCK | Remove bridge notes once all OCK command templates validate directly against OMO runtime assumptions |
-| Legacy `oh-my-opencode` naming vs canonical `oh-my-openagent` | **Canonical `oh-my-openagent`** | Accept legacy config/package naming during MVP and auto-migrate when possible | Canonical naming is preferred in docs and generated config | Remove active migration language when `ock upgrade` rewrites generated configs/examples to canonical naming and legacy support is only an alias path |
-| OCK memory runtime vs OMO runtime capabilities | **OCK for MVP** | Explicitly defer ownership transfer; do not silently split memory ownership | Existing OCK memory behavior remains authoritative until parity work exists | Remove deferment once a dedicated parity-and-migration design is approved |
+| Duplicate / overlapping surface                               | Winning owner                        | Temporary bridge behavior                                                                                                                                                | Precedence rule                                                             | Removal trigger                                                                                                                                      |
+| ------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OCK session plugin surface vs OMO session tools               | **OMO**                              | OCK-authored commands/skills may keep compatibility wrappers or alias references while migrating to `session_list`, `session_read`, `session_search`, and `session_info` | OMO runtime tools are authoritative                                         | Remove when distributed OCK content no longer depends on the old session plugin surface and unified smoke tests pass without it                      |
+| OCK skill-MCP plugin vs OMO skill-MCP runtime                 | **OMO**                              | Preserve skill-local metadata formats (`mcp.json` / YAML frontmatter) but let OMO own client lifecycle, connection management, and tool exposure                         | OMO runtime behavior wins; OCK only authors metadata/content                | Remove when all skill-scoped MCP scenarios pass through OMO with no OCK plugin runtime dependency                                                    |
+| OCK runtime-shaped slash commands vs OMO runtime semantics    | **OMO for runtime, OCK for content** | Commands stay distributed by OCK but must call OMO agents/tools/categories rather than invent alternate runtime logic                                                    | Runtime semantics follow OMO; authored command text follows OCK             | Remove bridge notes once all OCK command templates validate directly against OMO runtime assumptions                                                 |
+| Legacy `oh-my-opencode` naming vs canonical `oh-my-openagent` | **Canonical `oh-my-openagent`**      | Accept legacy config/package naming during MVP and auto-migrate when possible                                                                                            | Canonical naming is preferred in docs and generated config                  | Remove active migration language when `ock upgrade` rewrites generated configs/examples to canonical naming and legacy support is only an alias path |
+| OCK memory runtime vs OMO runtime capabilities                | **OCK for MVP**                      | Explicitly defer ownership transfer; do not silently split memory ownership                                                                                              | Existing OCK memory behavior remains authoritative until parity work exists | Remove deferment once a dedicated parity-and-migration design is approved                                                                            |
 
 ### Bridge Rule
 
@@ -116,14 +180,14 @@ Every bridge is temporary by design. A bridge is allowed only when:
 
 ## Runtime / Toolchain Matrix
 
-| Layer | Runtime / toolchain | Owner | Responsibility | Explicit non-responsibility |
-|---|---|---|---|---|
-| Public CLI and installer | Node.js / npm scripts | **OCK** | `ock` entry point, init, upgrade, status, validation, packaging | Not the runtime orchestrator |
-| Distributed project payload | Node-built template content | **OCK** | Ship commands, skills, docs, bridge-managed project files | Not the authority for runtime behavior once loaded |
-| Runtime orchestration engine | Bun | **OMO** | Agents, tools, command/skill loading, MCP registration, session tools, background task lifecycle | Not the primary task ledger |
-| Session / orchestration control plane | Bun | **OMO** | One scheduler: spawn, poll, retry, cancel, notify, enforce concurrency | Not task-state storage |
-| Task ledger / dependency graph / ready queue | Rust (`beads_rust`) | **beads_rust** | Task records, dependencies, `br ready`, JSON/JSONL sync, agent-readable task state | Not scheduling, polling, or daemonized orchestration |
-| Future Rust-backed task workers | Rust under OMO invocation | **Deferred** | Optional performance-oriented worker implementations later | Must not become a second scheduler |
+| Layer                                        | Runtime / toolchain         | Owner          | Responsibility                                                                                   | Explicit non-responsibility                          |
+| -------------------------------------------- | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Public CLI and installer                     | Node.js / npm scripts       | **OCK**        | `ock` entry point, init, upgrade, status, validation, packaging                                  | Not the runtime orchestrator                         |
+| Distributed project payload                  | Node-built template content | **OCK**        | Ship commands, skills, docs, bridge-managed project files                                        | Not the authority for runtime behavior once loaded   |
+| Runtime orchestration engine                 | Bun                         | **OMO**        | Agents, tools, command/skill loading, MCP registration, session tools, background task lifecycle | Not the primary task ledger                          |
+| Session / orchestration control plane        | Bun                         | **OMO**        | One scheduler: spawn, poll, retry, cancel, notify, enforce concurrency                           | Not task-state storage                               |
+| Task ledger / dependency graph / ready queue | Rust (`beads_rust`)         | **beads_rust** | Task records, dependencies, `br ready`, JSON/JSONL sync, agent-readable task state               | Not scheduling, polling, or daemonized orchestration |
+| Future Rust-backed task workers              | Rust under OMO invocation   | **Deferred**   | Optional performance-oriented worker implementations later                                       | Must not become a second scheduler                   |
 
 ### Rust Boundary
 
