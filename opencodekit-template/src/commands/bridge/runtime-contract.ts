@@ -13,11 +13,121 @@ interface BridgeExperimentalConfig {
 }
 
 function stripJsonComments(content: string): string {
-	return content.replace(/^\s*\/\/.*$/gm, "").trim();
+	let result = "";
+	let inString = false;
+	let isEscaped = false;
+	let inLineComment = false;
+	let inBlockComment = false;
+
+	for (let index = 0; index < content.length; index += 1) {
+		const character = content[index];
+		const nextCharacter = content[index + 1];
+
+		if (inLineComment) {
+			if (character === "\n") {
+				inLineComment = false;
+				result += character;
+			}
+			continue;
+		}
+
+		if (inBlockComment) {
+			if (character === "*" && nextCharacter === "/") {
+				inBlockComment = false;
+				index += 1;
+			}
+			continue;
+		}
+
+		if (!inString && character === "/" && nextCharacter === "/") {
+			inLineComment = true;
+			index += 1;
+			continue;
+		}
+
+		if (!inString && character === "/" && nextCharacter === "*") {
+			inBlockComment = true;
+			index += 1;
+			continue;
+		}
+
+		result += character;
+
+		if (inString) {
+			if (isEscaped) {
+				isEscaped = false;
+				continue;
+			}
+			if (character === "\\") {
+				isEscaped = true;
+				continue;
+			}
+			if (character === '"') {
+				inString = false;
+			}
+			continue;
+		}
+
+		if (character === '"') {
+			inString = true;
+		}
+	}
+
+	return result;
+}
+
+function stripTrailingCommas(content: string): string {
+	let result = "";
+	let inString = false;
+	let isEscaped = false;
+
+	for (let index = 0; index < content.length; index += 1) {
+		const character = content[index];
+
+		if (inString) {
+			result += character;
+			if (isEscaped) {
+				isEscaped = false;
+				continue;
+			}
+			if (character === "\\") {
+				isEscaped = true;
+				continue;
+			}
+			if (character === '"') {
+				inString = false;
+			}
+			continue;
+		}
+
+		if (character === '"') {
+			inString = true;
+			result += character;
+			continue;
+		}
+
+		if (character === ",") {
+			let lookahead = index + 1;
+			while (lookahead < content.length && /\s/.test(content[lookahead])) {
+				lookahead += 1;
+			}
+			if (content[lookahead] === "}" || content[lookahead] === "]") {
+				continue;
+			}
+		}
+
+		result += character;
+	}
+
+	return result;
+}
+
+function normalizeJsonc(content: string): string {
+	return stripTrailingCommas(stripJsonComments(content)).trim();
 }
 
 function parseBridgeConfig(content: string): BridgeExperimentalConfig {
-	const normalizedContent = stripJsonComments(content);
+	const normalizedContent = normalizeJsonc(content);
 	if (normalizedContent.length === 0) {
 		return {};
 	}
@@ -25,7 +135,10 @@ function parseBridgeConfig(content: string): BridgeExperimentalConfig {
 	return JSON.parse(normalizedContent) as BridgeExperimentalConfig;
 }
 
-function withBeadsRuntimeManagedConfig(content: string, enabled: boolean): string {
+function withBeadsRuntimeManagedConfig(
+	content: string,
+	enabled: boolean,
+): string {
 	const parsed = parseBridgeConfig(content);
 	const nextConfig: BridgeExperimentalConfig = {
 		...parsed,
@@ -62,10 +175,34 @@ export function hasCanonicalPluginEntry(plugins: string[]): boolean {
 	);
 }
 
-export function canonicalizeBridgePluginEntries(existingPlugins: string[]): string[] {
-	const canonicalPlugins = existingPlugins
-		.map(toCanonicalPluginEntry)
-		.filter((pluginName, index, values) => values.indexOf(pluginName) === index);
+export function canonicalizeBridgePluginEntries(
+	existingPlugins: string[],
+): string[] {
+	const canonicalPlugins: string[] = [];
+	let canonicalBridgeIndex = -1;
+
+	for (const pluginName of existingPlugins.map(toCanonicalPluginEntry)) {
+		const isBridgeEntry =
+			pluginName === PLUGIN_NAME || pluginName.startsWith(`${PLUGIN_NAME}@`);
+
+		if (isBridgeEntry) {
+			if (canonicalBridgeIndex === -1) {
+				canonicalPlugins.push(pluginName);
+				canonicalBridgeIndex = canonicalPlugins.length - 1;
+				continue;
+			}
+
+			const existingBridgeEntry = canonicalPlugins[canonicalBridgeIndex];
+			if (!existingBridgeEntry.includes("@") && pluginName.includes("@")) {
+				canonicalPlugins[canonicalBridgeIndex] = pluginName;
+			}
+			continue;
+		}
+
+		if (!canonicalPlugins.includes(pluginName)) {
+			canonicalPlugins.push(pluginName);
+		}
+	}
 
 	if (!hasCanonicalPluginEntry(canonicalPlugins)) {
 		canonicalPlugins.push(PLUGIN_NAME);
@@ -74,18 +211,26 @@ export function canonicalizeBridgePluginEntries(existingPlugins: string[]): stri
 	return canonicalPlugins;
 }
 
-export function ensureCanonicalPluginRegistration(opencodeConfigPath: string): boolean {
-	const config = JSON.parse(readFileSync(opencodeConfigPath, "utf-8")) as {
+export function ensureCanonicalPluginRegistration(
+	opencodeConfigPath: string,
+): boolean {
+	const config = JSON.parse(
+		normalizeJsonc(readFileSync(opencodeConfigPath, "utf-8")),
+	) as {
 		plugin?: unknown;
 	};
 	const existingPlugins = Array.isArray(config.plugin)
-		? config.plugin.filter((value): value is string => typeof value === "string")
+		? config.plugin.filter(
+				(value): value is string => typeof value === "string",
+			)
 		: [];
 	const canonicalPlugins = canonicalizeBridgePluginEntries(existingPlugins);
 
 	if (
 		existingPlugins.length === canonicalPlugins.length &&
-		existingPlugins.every((pluginName, index) => pluginName === canonicalPlugins[index])
+		existingPlugins.every(
+			(pluginName, index) => pluginName === canonicalPlugins[index],
+		)
 	) {
 		return false;
 	}
@@ -107,7 +252,8 @@ export function refreshCanonicalBridgeConfigFromTemplate(
 		refreshOnlyIfBeadsRuntimeEnabled?: boolean;
 	},
 ): boolean {
-	const templateBridgeConfigPath = getCanonicalBridgeConfigPath(templateOpencodeDir);
+	const templateBridgeConfigPath =
+		getCanonicalBridgeConfigPath(templateOpencodeDir);
 	if (!existsSync(templateBridgeConfigPath)) {
 		return false;
 	}

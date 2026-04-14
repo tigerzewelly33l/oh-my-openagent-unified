@@ -331,7 +331,7 @@ describe("init/upgrade regression helpers", () => {
 		) as { plugin: string[] };
 
 		expect(opencodeConfig.plugin).toContain("oh-my-openagent@latest");
-		expect(opencodeConfig.plugin).toContain("oh-my-openagent@1.0.0");
+		expect(opencodeConfig.plugin).not.toContain("oh-my-openagent@1.0.0");
 		expect(opencodeConfig.plugin).not.toContain("oh-my-opencode");
 	});
 
@@ -345,7 +345,17 @@ describe("init/upgrade regression helpers", () => {
 				"other-plugin",
 				"other-plugin",
 			]),
-		).toEqual(["oh-my-openagent", "oh-my-openagent@latest", "other-plugin"]);
+		).toEqual(["oh-my-openagent@latest", "other-plugin"]);
+	});
+
+	it("canonicalizeBridgePluginEntries prefers a versioned canonical bridge entry over an unversioned one", () => {
+		expect(
+			canonicalizeBridgePluginEntries([
+				"oh-my-openagent",
+				"other-plugin",
+				"oh-my-openagent@latest",
+			]),
+		).toEqual(["oh-my-openagent@latest", "other-plugin"]);
 	});
 
 	it("refreshBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries during upgrade", () => {
@@ -401,9 +411,8 @@ describe("init/upgrade regression helpers", () => {
 		) as { plugin: string[] };
 
 		expect(opencodeConfig.plugin).toEqual([
-			"oh-my-openagent",
-			"other-plugin",
 			"oh-my-openagent@latest",
+			"other-plugin",
 		]);
 	});
 
@@ -437,6 +446,33 @@ describe("init/upgrade regression helpers", () => {
 		expect(JSON.parse(readFileSync(bridgeConfigPath, "utf-8"))).toEqual({
 			experimental: {
 				beads_runtime: false,
+				task_system: false,
+			},
+		});
+	});
+
+	it("refreshBridgeArtifactsScaffold preserves beads runtime from JSONC bridge configs with inline comments and trailing commas", () => {
+		const opencodeDir = makeTempDir("ock-bridge-upgrade-jsonc-");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		const bridgeConfigPath = join(opencodeDir, "oh-my-openagent.jsonc");
+		writeFileSync(
+			bridgeConfigPath,
+			'{\n  "experimental": {\n    // keep managed runtime enabled\n    "beads_runtime": true,\n    /* reset legacy task_system */\n    "task_system": true,\n  },\n}\n',
+		);
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: [] }, null, 2),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		expect(JSON.parse(readFileSync(bridgeConfigPath, "utf-8"))).toEqual({
+			experimental: {
+				beads_runtime: true,
 				task_system: false,
 			},
 		});
