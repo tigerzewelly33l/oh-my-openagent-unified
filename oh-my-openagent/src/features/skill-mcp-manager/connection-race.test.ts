@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock, afterAll } from "bun:test"
 import type { ClaudeCodeMcpServer } from "../claude-code-mcp-loader/types"
 import type { SkillMcpClientInfo, SkillMcpManagerState } from "./types"
-import { importFreshModuleWithMocks } from "./fresh-module-harness"
 
 type Deferred<TValue> = {
   promise: Promise<TValue>
@@ -43,23 +42,21 @@ class MockStdioClientTransport {
 const { disconnectAll, disconnectSession } = await import("./cleanup")
 
 async function importFreshConnectionModule() {
-  return await importFreshModuleWithMocks<typeof import("./connection")>({
-    importPath: `./connection?race-test=${Date.now()}-${Math.random()}`,
-    mockedModules: [
-      {
-        specifier: "@modelcontextprotocol/sdk/client/index.js",
-        factory: () => ({ Client: MockClient }),
-      },
-      {
-        specifier: "@modelcontextprotocol/sdk/client/stdio.js",
-        factory: () => ({ StdioClientTransport: MockStdioClientTransport }),
-      },
-    ],
-    restoreSpecifiers: [
-      "@modelcontextprotocol/sdk/client/index.js",
-      "@modelcontextprotocol/sdk/client/stdio.js",
-    ],
-  })
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => ({
+    Client: MockClient,
+  }))
+
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => ({
+    StdioClientTransport: MockStdioClientTransport,
+  }))
+
+  const module = await import(`./connection?race-test=${Date.now()}-${Math.random()}`)
+  mock.restore()
+  const realClientModule = await import("@modelcontextprotocol/sdk/client/index.js")
+  const realStdioTransportModule = await import("@modelcontextprotocol/sdk/client/stdio.js")
+  mock.module("@modelcontextprotocol/sdk/client/index.js", () => realClientModule)
+  mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => realStdioTransportModule)
+  return module
 }
 
 afterAll(() => { mock.restore() })
@@ -96,11 +93,6 @@ function createState(): SkillMcpManagerState {
     shutdownGeneration: 0,
     inFlightConnections: new Map(),
     disposed: false,
-    createOAuthProvider: () => ({
-      tokens: () => null,
-      login: async () => ({ accessToken: "test-token" }),
-      refresh: async () => ({ accessToken: "test-token" }),
-    }),
   }
 
   trackedStates.push(state)

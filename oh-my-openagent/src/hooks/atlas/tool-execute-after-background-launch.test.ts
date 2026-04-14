@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test"
+import { afterEach, beforeEach, describe, expect, it, mock, afterAll, spyOn } from "bun:test"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -16,6 +16,7 @@ const isCallerOrchestratorMock = mock(async () => true)
 const collectGitDiffStatsMock = mock((): GitFileStat[] => [])
 
 const { createToolExecuteAfterHandler } = await import("./tool-execute-after")
+afterAll(() => {})
 
 type SessionGetInput = { path: { id: string } }
 type SessionGetResult = {
