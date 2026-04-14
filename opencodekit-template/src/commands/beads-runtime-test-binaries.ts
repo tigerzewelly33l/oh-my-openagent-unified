@@ -1,17 +1,28 @@
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 export function installFakeRuntimeBinaries(
 	projectDir: string,
 	originalPath: string | undefined,
+	platform = process.platform,
 ) {
 	const binDir = join(projectDir, "bin");
 	mkdirSync(binDir, { recursive: true });
-	writeFileSync(
-		join(binDir, "npm"),
-		"#!/usr/bin/env bash\nmkdir -p node_modules\nexit 0\n",
-	);
-	chmodSync(join(binDir, "npm"), 0o755);
+	const fakeNpmScript = [
+		"#!/usr/bin/env node",
+		'const { mkdirSync } = require("node:fs");',
+		'const { join } = require("node:path");',
+		'mkdirSync(join(process.cwd(), "node_modules"), { recursive: true });',
+	].join("\n");
+	const npmScriptPath = join(binDir, platform === "win32" ? "npm.js" : "npm");
+	writeFileSync(npmScriptPath, `${fakeNpmScript}\n`);
+	chmodSync(npmScriptPath, 0o755);
+	if (platform === "win32") {
+		writeFileSync(
+			join(binDir, "npm.cmd"),
+			'@echo off\r\nnode "%~dp0\\npm.js" %*\r\n',
+		);
+	}
 
 	const fakeBrScript = [
 		"#!/usr/bin/env node",
@@ -86,7 +97,16 @@ export function installFakeRuntimeBinaries(
 		"process.exit(1);",
 	].join("\n");
 
-	writeFileSync(join(binDir, "br"), fakeBrScript);
-	chmodSync(join(binDir, "br"), 0o755);
-	process.env.PATH = `${binDir}:${originalPath ?? ""}`;
+	const brScriptPath = join(binDir, platform === "win32" ? "br.js" : "br");
+	writeFileSync(brScriptPath, fakeBrScript);
+	chmodSync(brScriptPath, 0o755);
+	if (platform === "win32") {
+		writeFileSync(
+			join(binDir, "br.cmd"),
+			'@echo off\r\nnode "%~dp0\\br.js" %*\r\n',
+		);
+	}
+	process.env.PATH = [binDir, originalPath ?? ""]
+		.filter((value) => value.length > 0)
+		.join(delimiter);
 }
