@@ -199,7 +199,9 @@ export async function initCommand(rawOptions: Partial<InitOptions> = {}) {
 		p.log.info(`Preserved ${restoredFileCount} user memory files (memory/project/)`);
 	}
 
-	emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir);
+	emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir, {
+		beadsRuntimeEnabled: options.beads,
+	});
 
 	if (options.free) {
 		applyModelPreset(targetDir, "free");

@@ -33,7 +33,9 @@ br show $ARGUMENTS
 git status --porcelain
 git branch --show-current
 git rev-parse --short HEAD
-Read `.beads/artifacts/$ARGUMENTS/` to check existing artifacts.
+Read bead-local durable artifacts such as `.beads/artifacts/$ARGUMENTS/prd.md`, `.beads/artifacts/$ARGUMENTS/progress.txt`, and `.beads/artifacts/$ARGUMENTS/research.md`, plus any matching `.sisyphus/plans/*.md` working draft if present.
+
+If you need the durable published plan truth for the handoff, read it explicitly from `.beads/artifacts/plan-snapshots/<bead-id>/...` rather than assuming a generic `.beads/artifacts/$ARGUMENTS/` read is enough.
 ```
 
 ---
@@ -73,7 +75,7 @@ git commit -m "WIP: $ARGUMENTS - [brief description of where you stopped]"
 Write the handoff to the memory system:
 
 ```typescript
-memory_update({
+memory-update({
   file: "handoffs/$ARGUMENTS",
   content: `# Handoff: $ARGUMENTS
 
@@ -127,11 +129,15 @@ observation({
 
 ---
 
-## Phase 5: Sync
+## Phase 5: Leave Bead State Unchanged
 
-```bash
-br sync --flush-only
-```
+Do not close the bead or flush bead state from `/handoff`.
+
+`/handoff` is for saving context only. Keep the ownership split frozen:
+
+- `/ship` remains the only authored close + sync path
+- `/verify` remains the only authored command that writes `.beads/verify.log`
+- `/handoff` must not change bead status or flush bead state
 
 ---
 

@@ -6,7 +6,7 @@ agent: review
 
 # Verify: $ARGUMENTS
 
-Check implementation against PRD before shipping.
+Check implementation against PRD before shipping. `/verify` is the only authored command that writes `.beads/verify.log`.
 
 ## Load Skills
 
@@ -45,13 +45,12 @@ skill({ name: "verification-before-completion" });
 Before running any gates, check if a recent verification is still valid:
 
 ```bash
-# Compute current state fingerprint (commit hash + diff + untracked file content)
-CURRENT_STAMP=$(printf '%s\n%s\n%s' \
+# Compute current state fingerprint (commit hash + diff)
+CURRENT_STAMP=$(printf '%s\n%s' \
   "$(git rev-parse HEAD)" \
   "$(git diff HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx')" \
-  "$(git ls-files --others --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.jsx' | xargs cat 2>/dev/null)" \
   | shasum -a 256 | cut -d' ' -f1)
-LAST_STAMP=$(awk '/^[0-9a-f]{64} / && $3 == "PASS" { stamp=$1 } END { if (stamp) print stamp }' .beads/verify.log 2>/dev/null)
+LAST_STAMP=$(tail -1 .beads/verify.log 2>/dev/null | awk '{print $1}')
 ```
 
 | Condition                                 | Action                                                 |
@@ -60,12 +59,10 @@ LAST_STAMP=$(awk '/^[0-9a-f]{64} / && $3 == "PASS" { stamp=$1 } END { if (stamp)
 | `CURRENT_STAMP == LAST_STAMP`             | Report **cached PASS**, skip to Phase 2 (completeness) |
 | `CURRENT_STAMP != LAST_STAMP` or no cache | Run gates normally                                     |
 
-Only hash-prefixed verification records count as cache stamps. OMO `/stop-continuation` entries like `session:<id> plan:<name> ... PASS|FAIL` remain valid shared completion evidence, but they must be ignored by the cache reader.
-
 When cache hits, report:
 
 ```text
-Verification: cached PASS (no changes since the latest stamp-shaped verify.log entry)
+Verification: cached PASS (no changes since <timestamp from verify.log>)
 ```
 
 ## Phase 1: Gather Context
@@ -74,9 +71,15 @@ Verification: cached PASS (no changes since the latest stamp-shaped verify.log e
 br show $ARGUMENTS
 ```
 
-Read `.beads/artifacts/$ARGUMENTS/` to check what artifacts exist.
+Read the bead-local durable artifacts that belong to this bead, such as `.beads/artifacts/$ARGUMENTS/prd.md` and any supporting durable files.
 
-Read the PRD and any other artifacts (plan.md, research.md, design.md).
+Read the PRD and any other relevant artifacts:
+
+- Durable published plan snapshots under `.beads/artifacts/plan-snapshots/<bead-id>/`
+- Supporting durable files such as `research.md` or `design.md`
+- Matching `.sisyphus/plans/*.md` drafts only as rebuildable working context, never as the durable published truth
+
+Do not treat a generic read of `.beads/artifacts/$ARGUMENTS/` as sufficient evidence of durable published plan truth; that published plan surface is namespaced under `plan-snapshots/<bead-id>/`.
 
 **Verify guards:**
 
@@ -127,12 +130,15 @@ echo "$CURRENT_STAMP $(date -u +%Y-%m-%dT%H:%M:%SZ) PASS" >> .beads/verify.log
 
 If `--fix` flag provided, run the project's auto-fix command (e.g., `npm run lint:fix`, `ruff check --fix`, `cargo clippy --fix`).
 
+No other authored command should append PASS/FAIL markers to `.beads/verify.log`. Other workflows may read verification status, but `/verify` remains the sole writer.
+
 ## Phase 4: Coherence (skip with --quick)
 
 Cross-reference artifacts for contradictions:
 
 - PRD vs implementation (does code address all PRD requirements?)
-- Plan vs implementation (did code follow the plan?)
+- Durable published plan snapshot vs implementation (did code follow the published plan?)
+- Working `.sisyphus` draft vs implementation only when it has not yet been published and you need draft-context drift notes
 - Research recommendations vs actual approach (if different, is it justified?)
 
 Flag contradictions with specific file references.

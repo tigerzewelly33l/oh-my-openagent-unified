@@ -14,10 +14,10 @@ Full compound engineering cycle. One command, all four steps.
 
 ## Parse Arguments
 
-| Argument      | Default  | Description                             |
-| ------------- | -------- | --------------------------------------- |
-| `<bead-id>`   | required | The bead to execute                     |
-| `--skip-plan` | false    | Skip planning if plan.md already exists |
+| Argument      | Default  | Description                                                                |
+| ------------- | -------- | -------------------------------------------------------------------------- |
+| `<bead-id>`   | required | The bead to execute                                                        |
+| `--skip-plan` | false    | Skip planning if a working draft or published plan snapshot already exists |
 
 ## Phase 0: Preflight
 
@@ -25,13 +25,17 @@ Full compound engineering cycle. One command, all four steps.
 br show $BEAD_ID
 ```
 
-Read `.beads/artifacts/$BEAD_ID/` to check what artifacts exist.
+Read the bead's durable artifacts for PRD and related bead-local context, then check published plan snapshots separately:
+
+- `.beads/artifacts/$BEAD_ID/` for `prd.md` and other bead-local durable artifacts
+- `.beads/artifacts/plan-snapshots/<bead-id>/` for durable published plan snapshots
+- `.sisyphus/plans/*.md` only as rebuildable working authoring state
 
 Verify:
 
 - Bead exists and is `in_progress`
 - `prd.md` exists
-- If `plan.md` exists and `--skip-plan` not set: ask user whether to replan or use existing
+- If a matching working draft in `.sisyphus/plans/*.md` or a published snapshot under `.beads/artifacts/plan-snapshots/<bead-id>/` exists and `--skip-plan` is not set: ask user whether to replan or use the existing plan state
 
 Report:
 
@@ -50,7 +54,8 @@ Load and execute the `/plan` command for this bead:
 ```typescript
 skill({ name: "writing-plans" });
 // Run full /plan flow including Phase 0 institutional research
-// Output: .beads/artifacts/$BEAD_ID/plan.md
+// Output: working draft in .sisyphus/plans/<plan-name>.md
+// Durable published truth appears only after ock plan publish writes .beads/artifacts/plan-snapshots/<bead-id>/...
 ```
 
 Checkpoint if plan has major unknowns or architecture questions. Otherwise proceed automatically.
@@ -61,7 +66,8 @@ Execute the plan:
 
 ```typescript
 skill({ name: "executing-plans" });
-// Load plan.md, execute wave-by-wave
+// Load the published durable plan snapshot when available, otherwise the matching .sisyphus/plans/*.md working draft
+// Execute wave-by-wave
 // Per-task commits after each task passes verification
 ```
 

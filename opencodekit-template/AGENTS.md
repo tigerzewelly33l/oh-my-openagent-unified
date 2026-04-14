@@ -27,6 +27,14 @@ dist/             # Built output + .opencode template bundle
 **Lint**: `npm run lint` (fix: `npm run lint:fix`)
 **Typecheck**: `npm run typecheck`
 
+## Frozen Integration Contract
+
+- `ock` is the public command authority for this integration story.
+- `.beads` is the documented durable and user-facing state surface.
+- OMO runs behind `ock` as the internal runtime and orchestration engine.
+- `.sisyphus` is rebuildable runtime and planning state, not durable user-facing truth.
+- Schema-1 artifacts under `.beads/artifacts/*` are namespaced by ownership: `ock` writes manifests and published plan snapshots, while OMO writes only runtime attachments and runtime checkpoints.
+
 ### OpenCode Command Surface (Minimal)
 
 This kit keeps a small, opinionated command set. Keep workflows as commands and move reusable procedures into skills.

@@ -36,6 +36,6 @@ export function assertBeadsRuntimeCommandContracts(projectDir: string) {
 		"No other authored command should append PASS/FAIL markers to `.beads/verify.log`",
 	);
 	expect(statusCommand).toContain(
-		"Don't create beads, attach runtime state, write verify logs, or modify bead status from status",
+		"Don't create beads, attach runtime state, write verify logs, publish plans, repair runtime state, or modify bead status from status",
 	);
 }

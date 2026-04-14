@@ -1,9 +1,22 @@
 ---
 name: stitch-design-taste
 description: Use when generating DESIGN.md files for Google Stitch projects to enforce premium, anti-generic UI standards. Load BEFORE stitch skill when design quality matters. Stitch-specific only — do not use for general web projects.
+version: 1.0.0
+tags: [ui, design, integration]
+dependencies: []
 ---
 
 # Stitch Design Taste — Semantic Design System Skill
+
+## When to Use
+
+- Generating or refining `DESIGN.md` for Google Stitch projects.
+- Defining premium, anti-generic visual rules for Stitch-driven screen generation.
+
+## When NOT to Use
+
+- General frontend implementation outside Google Stitch workflows.
+- Projects that do not use Stitch or do not need a semantic design-system prompt document.
 
 ## Overview
 This skill generates `DESIGN.md` files optimized for Google Stitch screen generation. It translates the battle-tested anti-slop frontend engineering directives into Stitch's native semantic design language — descriptive, natural-language rules paired with precise values that Stitch's AI agent can interpret to produce premium, non-generic interfaces.

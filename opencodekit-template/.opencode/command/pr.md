@@ -55,7 +55,12 @@ If bead ID provided:
 br show $ARGUMENTS
 ```
 
-Read `.beads/artifacts/$ARGUMENTS/` to check what artifacts exist.
+Read the bead's durable artifacts with the ownership split in mind:
+
+- `.beads/artifacts/$ARGUMENTS/` for `prd.md` and other bead-local durable artifacts that belong to this bead
+- `.beads/artifacts/plan-snapshots/<bead-id>/` only if you need the durable published plan truth
+
+Do not treat a generic `.beads/artifacts/$ARGUMENTS/` directory read as proof of durable published plan truth.
 
 Read the PRD to extract goal and success criteria for the PR description.
 

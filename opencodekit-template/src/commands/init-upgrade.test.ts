@@ -11,16 +11,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { hashContent, loadManifest, MANIFEST_FILE } from "../utils/manifest";
+import {
+	isRuntimeAttachmentsRegistry,
+	isRuntimeCheckpointArtifact,
+} from "./beads-runtime-artifact-files";
 import { canonicalizeBridgePluginEntries } from "./bridge/runtime-contract";
-import { copyOpenCodeOnly } from "./init/files";
 import { finalizeInstalledFiles, findOrphans, preserveUserFiles } from "./init";
+import { copyOpenCodeOnly } from "./init/files";
 import {
 	emitCanonicalBridgeArtifactsScaffold,
+	ensureSchema1ArtifactScaffold,
+	initializeBeads,
 	installEmbeddedDependencies,
 } from "./init/runtime";
 import { copyDirWithPreserve, findUpgradeOrphans } from "./upgrade";
-import { handleUpgradeOrphans } from "./upgrade/orphans";
 import { refreshBridgeArtifactsScaffold } from "./upgrade/bridge";
+import { handleUpgradeOrphans } from "./upgrade/orphans";
 
 const tempDirs: string[] = [];
 
@@ -163,22 +169,146 @@ describe("init/upgrade regression helpers", () => {
 			JSON.stringify({ plugin: ["oh-my-opencode", "other-plugin"] }, null, 2),
 		);
 
-		const result = emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir);
+		const result = emitCanonicalBridgeArtifactsScaffold(
+			templateRoot,
+			targetDir,
+		);
 		const bridgeConfig = readFileSync(
 			join(opencodeDir, "oh-my-openagent.jsonc"),
-			"utf-8",
-		);
-		const templateBridgeConfig = readFileSync(
-			join(templateRoot, ".opencode", "oh-my-openagent.jsonc"),
 			"utf-8",
 		);
 		const opencodeConfig = JSON.parse(
 			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
 		) as { plugin: string[] };
 
-		expect(result.emitted).toContain(join(".opencode", "oh-my-openagent.jsonc"));
-		expect(bridgeConfig).toBe(templateBridgeConfig);
+		expect(result.emitted).toContain(
+			join(".opencode", "oh-my-openagent.jsonc"),
+		);
+		expect(JSON.parse(bridgeConfig)).toEqual({
+			experimental: {
+				beads_runtime: false,
+				task_system: false,
+			},
+		});
 		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent", "other-plugin"]);
+	});
+
+	it("emitCanonicalBridgeArtifactsScaffold enables beads runtime for fresh beads init", () => {
+		const targetDir = makeTempDir("ock-bridge-init-beads-");
+		const opencodeDir = join(targetDir, ".opencode");
+		const templateRoot = process.cwd();
+		mkdirSync(opencodeDir, { recursive: true });
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: [] }, null, 2),
+		);
+
+		emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir, {
+			beadsRuntimeEnabled: true,
+		});
+
+		const bridgeConfig = JSON.parse(
+			readFileSync(join(opencodeDir, "oh-my-openagent.jsonc"), "utf-8"),
+		) as { experimental: { beads_runtime: boolean; task_system: boolean } };
+
+		expect(bridgeConfig.experimental).toEqual({
+			beads_runtime: true,
+			task_system: false,
+		});
+	});
+
+	it("initializeBeads creates schema-1 artifact scaffolding for fresh beads projects", () => {
+		const targetDir = makeTempDir("ock-beads-init-schema-");
+
+		initializeBeads(targetDir, true);
+
+		expect(existsSync(join(targetDir, ".beads", "config.yaml"))).toBe(true);
+		expect(
+			JSON.parse(
+				readFileSync(
+					join(
+						targetDir,
+						".beads",
+						"artifacts",
+						"manifests",
+						"index.schema-1.json",
+					),
+					"utf-8",
+				),
+			),
+		).toMatchObject({
+			schemaVersion: 1,
+			plans: {},
+		});
+		expect(
+			JSON.parse(
+				readFileSync(
+					join(
+						targetDir,
+						".beads",
+						"artifacts",
+						"runtime-attachments",
+						"registry.schema-1.json",
+					),
+					"utf-8",
+				),
+			),
+		).toMatchObject({
+			schemaVersion: 1,
+			attachments: {},
+		});
+		expect(
+			existsSync(
+				join(
+					targetDir,
+					".beads",
+					"artifacts",
+					"runtime-checkpoints",
+					"checkpoint-ses-root.schema-1.json",
+				),
+			),
+		).toBe(false);
+	});
+
+	it("ensureSchema1ArtifactScaffold is idempotent once placeholders exist", () => {
+		const targetDir = makeTempDir("ock-beads-schema-idempotent-");
+		mkdirSync(join(targetDir, ".beads"), { recursive: true });
+
+		const first = ensureSchema1ArtifactScaffold(targetDir);
+		const firstIndex = readFileSync(
+			join(
+				targetDir,
+				".beads",
+				"artifacts",
+				"manifests",
+				"index.schema-1.json",
+			),
+			"utf-8",
+		);
+		const second = ensureSchema1ArtifactScaffold(targetDir);
+
+		expect(first).toEqual([
+			join(".beads", "artifacts", "manifests", "index.schema-1.json"),
+			join(
+				".beads",
+				"artifacts",
+				"runtime-attachments",
+				"registry.schema-1.json",
+			),
+		]);
+		expect(second).toEqual([]);
+		expect(
+			readFileSync(
+				join(
+					targetDir,
+					".beads",
+					"artifacts",
+					"manifests",
+					"index.schema-1.json",
+				),
+				"utf-8",
+			),
+		).toBe(firstIndex);
 	});
 
 	it("emitCanonicalBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries", () => {
@@ -188,7 +318,11 @@ describe("init/upgrade regression helpers", () => {
 		mkdirSync(opencodeDir, { recursive: true });
 		writeFileSync(
 			join(opencodeDir, "opencode.json"),
-			JSON.stringify({ plugin: ["oh-my-opencode@latest", "oh-my-opencode@1.0.0"] }, null, 2),
+			JSON.stringify(
+				{ plugin: ["oh-my-opencode@latest", "oh-my-opencode@1.0.0"] },
+				null,
+				2,
+			),
 		);
 
 		emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir);
@@ -197,7 +331,7 @@ describe("init/upgrade regression helpers", () => {
 		) as { plugin: string[] };
 
 		expect(opencodeConfig.plugin).toContain("oh-my-openagent@latest");
-		expect(opencodeConfig.plugin).not.toContain("oh-my-openagent@1.0.0");
+		expect(opencodeConfig.plugin).toContain("oh-my-openagent@1.0.0");
 		expect(opencodeConfig.plugin).not.toContain("oh-my-opencode");
 	});
 
@@ -211,10 +345,7 @@ describe("init/upgrade regression helpers", () => {
 				"other-plugin",
 				"other-plugin",
 			]),
-		).toEqual([
-			"oh-my-openagent@latest",
-			"other-plugin",
-		]);
+		).toEqual(["oh-my-openagent", "oh-my-openagent@latest", "other-plugin"]);
 	});
 
 	it("refreshBridgeArtifactsScaffold canonicalizes versioned legacy plugin entries during upgrade", () => {
@@ -269,7 +400,11 @@ describe("init/upgrade regression helpers", () => {
 			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
 		) as { plugin: string[] };
 
-		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent@latest", "other-plugin"]);
+		expect(opencodeConfig.plugin).toEqual([
+			"oh-my-openagent",
+			"other-plugin",
+			"oh-my-openagent@latest",
+		]);
 	});
 
 	it("project-only init keeps the canonical bridge config local when shared dirs are skipped", async () => {
@@ -277,10 +412,6 @@ describe("init/upgrade regression helpers", () => {
 		const templateRoot = process.cwd();
 		const opencodeDir = join(targetDir, ".opencode");
 		const bridgeConfigPath = join(opencodeDir, "oh-my-openagent.jsonc");
-		const templateBridgeConfig = readFileSync(
-			join(templateRoot, ".opencode", "oh-my-openagent.jsonc"),
-			"utf-8",
-		);
 
 		const copied = await copyOpenCodeOnly(templateRoot, targetDir, [
 			"agent",
@@ -290,20 +421,43 @@ describe("init/upgrade regression helpers", () => {
 		]);
 		writeFileSync(bridgeConfigPath, "// stale bridge config\n{\n}\n");
 
-		const emitted = emitCanonicalBridgeArtifactsScaffold(templateRoot, targetDir);
+		const emitted = emitCanonicalBridgeArtifactsScaffold(
+			templateRoot,
+			targetDir,
+		);
 
 		expect(copied).toBe(true);
 		expect(existsSync(join(opencodeDir, "agent"))).toBe(false);
 		expect(existsSync(join(opencodeDir, "command"))).toBe(false);
 		expect(existsSync(join(opencodeDir, "skill"))).toBe(false);
 		expect(existsSync(join(opencodeDir, "tool"))).toBe(false);
-		expect(emitted.emitted).toContain(join(".opencode", "oh-my-openagent.jsonc"));
-		expect(readFileSync(bridgeConfigPath, "utf-8")).toBe(templateBridgeConfig);
+		expect(emitted.emitted).toContain(
+			join(".opencode", "oh-my-openagent.jsonc"),
+		);
+		expect(JSON.parse(readFileSync(bridgeConfigPath, "utf-8"))).toEqual({
+			experimental: {
+				beads_runtime: false,
+				task_system: false,
+			},
+		});
 	});
 
 	it("refreshBridgeArtifactsScaffold restores canonical bridge config during upgrade", () => {
 		const opencodeDir = makeTempDir("ock-bridge-upgrade-");
 		const templateOpencode = join(process.cwd(), ".opencode");
+		writeFileSync(
+			join(opencodeDir, "oh-my-openagent.jsonc"),
+			JSON.stringify(
+				{
+					experimental: {
+						beads_runtime: true,
+						task_system: true,
+					},
+				},
+				null,
+				2,
+			),
+		);
 		writeFileSync(
 			join(opencodeDir, "opencode.json"),
 			JSON.stringify({ plugin: ["oh-my-opencode"] }, null, 2),
@@ -319,16 +473,249 @@ describe("init/upgrade regression helpers", () => {
 			join(opencodeDir, "oh-my-openagent.jsonc"),
 			"utf-8",
 		);
-		const templateBridgeConfig = readFileSync(
-			join(templateOpencode, "oh-my-openagent.jsonc"),
-			"utf-8",
-		);
 		const opencodeConfig = JSON.parse(
 			readFileSync(join(opencodeDir, "opencode.json"), "utf-8"),
 		) as { plugin: string[] };
 
-		expect(bridgeConfig).toBe(templateBridgeConfig);
+		expect(JSON.parse(bridgeConfig)).toEqual({
+			experimental: {
+				beads_runtime: true,
+				task_system: false,
+			},
+		});
 		expect(opencodeConfig.plugin).toEqual(["oh-my-openagent"]);
+	});
+
+	it("refreshBridgeArtifactsScaffold leaves managed config unchanged for projects without explicit beads runtime enablement", () => {
+		const opencodeDir = makeTempDir("ock-bridge-upgrade-no-beads-");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		const existingBridgeConfig = JSON.stringify(
+			{
+				experimental: {
+					beads_runtime: false,
+					task_system: true,
+				},
+			},
+			null,
+			2,
+		);
+		writeFileSync(
+			join(opencodeDir, "oh-my-openagent.jsonc"),
+			`${existingBridgeConfig}\n`,
+		);
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: ["oh-my-opencode"] }, null, 2),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		expect(
+			readFileSync(join(opencodeDir, "oh-my-openagent.jsonc"), "utf-8"),
+		).toBe(`${existingBridgeConfig}\n`);
+	});
+
+	it("refreshBridgeArtifactsScaffold migrates legacy flat runtime artifacts to schema-1 once", () => {
+		const projectDir = makeTempDir("ock-bridge-migrate-legacy-");
+		const opencodeDir = join(projectDir, ".opencode");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		const legacyRegistry = { legacy: { beadID: "bd-1" } };
+		const legacyCheckpoint = { session_id: "ses-root", bead_id: "bd-1" };
+		mkdirSync(join(projectDir, ".beads", "artifacts"), { recursive: true });
+		mkdirSync(opencodeDir, { recursive: true });
+		writeFileSync(
+			join(opencodeDir, "oh-my-openagent.jsonc"),
+			JSON.stringify(
+				{ experimental: { beads_runtime: true, task_system: false } },
+				null,
+				2,
+			),
+		);
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: [] }, null, 2),
+		);
+		writeFileSync(
+			join(projectDir, ".beads", "artifacts", "runtime-attachments.json"),
+			JSON.stringify(legacyRegistry, null, 2),
+		);
+		writeFileSync(
+			join(projectDir, ".beads", "artifacts", "checkpoint-ses-root.json"),
+			JSON.stringify(legacyCheckpoint, null, 2),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		const canonicalRegistry = JSON.parse(
+			readFileSync(
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"runtime-attachments",
+					"registry.schema-1.json",
+				),
+				"utf-8",
+			),
+		);
+		const canonicalCheckpoint = JSON.parse(
+			readFileSync(
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"runtime-checkpoints",
+					"checkpoint-ses-root.schema-1.json",
+				),
+				"utf-8",
+			),
+		);
+
+		expect(isRuntimeAttachmentsRegistry(canonicalRegistry)).toBe(true);
+		expect(canonicalRegistry).toMatchObject({
+			schemaVersion: 1,
+			attachments: legacyRegistry,
+			runtime: { name: "oh-my-openagent" },
+		});
+		expect(isRuntimeCheckpointArtifact(canonicalCheckpoint)).toBe(true);
+		expect(canonicalCheckpoint).toMatchObject({
+			schemaVersion: 1,
+			session_id: "ses-root",
+			bead_id: "bd-1",
+			runtime: { name: "oh-my-openagent" },
+		});
+		expect(canonicalCheckpoint.task_sessions).toEqual({});
+		expect(canonicalCheckpoint.session_ids).toEqual([]);
+		expect(
+			JSON.parse(
+				readFileSync(
+					join(
+						projectDir,
+						".beads",
+						"artifacts",
+						"manifests",
+						"index.schema-1.json",
+					),
+					"utf-8",
+				),
+			),
+		).toMatchObject({ schemaVersion: 1, plans: {} });
+	});
+
+	it("refreshBridgeArtifactsScaffold is idempotent after legacy runtime migration completes", () => {
+		const projectDir = makeTempDir("ock-bridge-migrate-idempotent-");
+		const opencodeDir = join(projectDir, ".opencode");
+		const templateOpencode = join(process.cwd(), ".opencode");
+		mkdirSync(join(projectDir, ".beads", "artifacts"), { recursive: true });
+		mkdirSync(opencodeDir, { recursive: true });
+		writeFileSync(
+			join(opencodeDir, "oh-my-openagent.jsonc"),
+			JSON.stringify(
+				{ experimental: { beads_runtime: true, task_system: false } },
+				null,
+				2,
+			),
+		);
+		writeFileSync(
+			join(opencodeDir, "opencode.json"),
+			JSON.stringify({ plugin: [] }, null, 2),
+		);
+		writeFileSync(
+			join(projectDir, ".beads", "artifacts", "runtime-attachments.json"),
+			JSON.stringify({ legacy: { beadID: "bd-1" } }, null, 2),
+		);
+		writeFileSync(
+			join(projectDir, ".beads", "artifacts", "checkpoint-ses-root.json"),
+			JSON.stringify({ session_id: "ses-root", bead_id: "bd-1" }, null, 2),
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		const registrySnapshot = readFileSync(
+			join(
+				projectDir,
+				".beads",
+				"artifacts",
+				"runtime-attachments",
+				"registry.schema-1.json",
+			),
+			"utf-8",
+		);
+		const checkpointSnapshot = readFileSync(
+			join(
+				projectDir,
+				".beads",
+				"artifacts",
+				"runtime-checkpoints",
+				"checkpoint-ses-root.schema-1.json",
+			),
+			"utf-8",
+		);
+		const indexSnapshot = readFileSync(
+			join(
+				projectDir,
+				".beads",
+				"artifacts",
+				"manifests",
+				"index.schema-1.json",
+			),
+			"utf-8",
+		);
+
+		refreshBridgeArtifactsScaffold({
+			opencodeDir,
+			templateOpencode,
+			copyResult: { added: [], updated: [], preserved: [] },
+		});
+
+		expect(
+			readFileSync(
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"runtime-attachments",
+					"registry.schema-1.json",
+				),
+				"utf-8",
+			),
+		).toBe(registrySnapshot);
+		expect(
+			readFileSync(
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"runtime-checkpoints",
+					"checkpoint-ses-root.schema-1.json",
+				),
+				"utf-8",
+			),
+		).toBe(checkpointSnapshot);
+		expect(
+			readFileSync(
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"manifests",
+					"index.schema-1.json",
+				),
+				"utf-8",
+			),
+		).toBe(indexSnapshot);
 	});
 
 	it("upgrade prune removes obsolete bridge files but keeps the canonical bridge config", async () => {
@@ -339,7 +726,10 @@ describe("init/upgrade regression helpers", () => {
 			"utf-8",
 		);
 		const bridgeConfigPath = join(opencodeDir, "oh-my-openagent.jsonc");
-		const obsoleteBridgeFilePath = join(opencodeDir, "obsolete-bridge-file.txt");
+		const obsoleteBridgeFilePath = join(
+			opencodeDir,
+			"obsolete-bridge-file.txt",
+		);
 
 		writeFileSync(bridgeConfigPath, templateBridgeConfig);
 		writeFileSync(obsoleteBridgeFilePath, "obsolete bridge file");
@@ -370,22 +760,22 @@ describe("init/upgrade regression helpers", () => {
 	it.each([
 		{ exitCode: 0, expected: { attempted: true, installed: true } },
 		{ exitCode: 1, expected: { attempted: true, installed: false } },
-	])(
-		"installEmbeddedDependencies reports install results when npm exits with $exitCode",
-		({ exitCode, expected }) => {
-			const targetDir = makeTempDir(`ock-install-${exitCode}-`);
-			const opencodeDir = join(targetDir, ".opencode");
-			const fakeNpmBin = createFakeNpmBin(exitCode);
+	])("installEmbeddedDependencies reports install results when npm exits with $exitCode", ({
+		exitCode,
+		expected,
+	}) => {
+		const targetDir = makeTempDir(`ock-install-${exitCode}-`);
+		const opencodeDir = join(targetDir, ".opencode");
+		const fakeNpmBin = createFakeNpmBin(exitCode);
 
-			mkdirSync(opencodeDir, { recursive: true });
-			writeFileSync(
-				join(opencodeDir, "package.json"),
-				JSON.stringify({ name: "embedded-opencode", private: true }, null, 2),
-			);
+		mkdirSync(opencodeDir, { recursive: true });
+		writeFileSync(
+			join(opencodeDir, "package.json"),
+			JSON.stringify({ name: "embedded-opencode", private: true }, null, 2),
+		);
 
-			withPrependedPath(fakeNpmBin, () => {
-				expect(installEmbeddedDependencies(targetDir)).toEqual(expected);
-			});
-		},
-	);
+		withPrependedPath(fakeNpmBin, () => {
+			expect(installEmbeddedDependencies(targetDir)).toEqual(expected);
+		});
+	});
 });

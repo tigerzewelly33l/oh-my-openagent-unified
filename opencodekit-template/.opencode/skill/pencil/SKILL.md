@@ -2,7 +2,8 @@
 name: pencil
 description: Use when working with OpenPencil .op design files — creating, editing, or exporting code from designs. MUST load before any OpenPencil workflow. Requires desktop app (npm CLI does not provide openpencil-mcp).
 version: 1.0.0
-tags: [design, openpencil, mcp, cli]
+tags: [design, mcp, integration, automation]
+dependencies: []
 mcp:
   pencil:
     command: openpencil-mcp
@@ -17,6 +18,11 @@ Legacy skill name: `pencil`.
 - Create or modify UI designs as code using `.op` files.
 - Export production code or visuals from the terminal.
 - Use OpenPencil's desktop-bundled MCP server after installing the app.
+
+## When NOT to Use
+
+- General frontend work that does not involve OpenPencil `.op` files or its MCP server.
+- Situations where the OpenPencil desktop app is not installed and no MCP-backed workflow is available.
 
 ## Prerequisites
 

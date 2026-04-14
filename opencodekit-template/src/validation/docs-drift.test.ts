@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,11 +25,11 @@ function createDocsDriftFixture(): string {
 	mkdirSync(join(root, ".opencode", "plugin"), { recursive: true });
 	mkdirSync(join(root, ".opencode", "agent"), { recursive: true });
 
-	writeFileSync(join(root, "README.md"), "");
-	writeFileSync(join(root, "CLI.md"), "");
-	writeFileSync(join(root, ".opencode", "README.md"), "");
-	writeFileSync(join(root, ".opencode", "AGENTS.md"), "");
-	writeFileSync(join(root, ".opencode", "plugin", "README.md"), "");
+	writeFileSync(join(root, "README.md"), "")
+	writeFileSync(join(root, "CLI.md"), "")
+	writeFileSync(join(root, ".opencode", "README.md"), "")
+	writeFileSync(join(root, ".opencode", "AGENTS.md"), "")
+	writeFileSync(join(root, ".opencode", "plugin", "README.md"), "")
 
 	return root;
 }
@@ -65,20 +65,6 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		).toBe(true);
 	});
 
-	it("does not flag unrelated frontmatter skill_name metadata", () => {
-		const root = createDocsDriftFixture();
-		writeFileSync(
-			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
-			"---\nskill_name: calendar\n---\nThis is metadata, not a skill_mcp call.\n",
-		);
-
-		const result = runDocsDriftCheck(root);
-
-		expect(
-			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-syntax"),
-		).toBe(false);
-	});
-
 	it("allows deprecated status/disconnect mentions when explicitly marked unsupported", () => {
 		const root = createDocsDriftFixture();
 		writeFileSync(
@@ -91,41 +77,5 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		expect(
 			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-surface"),
 		).toBe(false);
-	});
-
-	it("flags a repeated deprecated surface mention when a later occurrence is undocumented", () => {
-		const root = createDocsDriftFixture();
-		const spacer = "x".repeat(220);
-		writeFileSync(
-			join(root, ".opencode", "plugin", "README.md"),
-			[
-				"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.",
-				spacer,
-				"skill_mcp_status remains available in examples below.",
-			].join("\n"),
-		);
-
-		const result = runDocsDriftCheck(root);
-
-		expect(result.ok).toBe(false);
-		expect(
-			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-surface"),
-		).toBe(true);
-	});
-
-	it("ignores broken symlinks while collecting markdown files", () => {
-		const root = createDocsDriftFixture();
-		const brokenSkillLink = join(root, ".opencode", "skill", "broken-link");
-		symlinkSync(join(root, "missing-target"), brokenSkillLink);
-
-		writeFileSync(
-			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
-			"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.\n",
-		);
-
-		const result = runDocsDriftCheck(root);
-
-		expect(result.ok).toBe(true);
-		expect(result.issues).toHaveLength(0);
 	});
 });

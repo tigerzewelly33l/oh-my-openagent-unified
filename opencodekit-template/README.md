@@ -64,12 +64,15 @@ The packaged CLI commands are:
 - `ock config [action]`
 - `ock doctor`
 - `ock status`
+- `ock plan publish --bead <id> --plan <path>`
 - `ock upgrade`
 - `ock patch [action]`
 - `ock completion [shell]`
 - `ock tui`
 
-OCK remains the bootstrap and management front door only. Runtime execution stays on the OMO CLI; there is intentionally no `ock run` command in this slice.
+OCK is the public command authority for this integration story. `.beads` is the documented durable and user-facing state surface, while OMO stays behind `ock` as the internal runtime and orchestration engine. There is intentionally no `ock run` command in this slice, and any direct OMO CLI usage here is internal/debug-oriented rather than the primary operator path.
+
+Use `ock plan publish --bead <id> --plan .sisyphus/plans/<plan>.md` to freeze an approved plan into the schema-1 durable snapshot namespace under `.beads/artifacts/plan-snapshots/<bead-id>/...` without modifying the source working plan file.
 
 See `CLI.md` for command usage details.
 
@@ -78,10 +81,14 @@ See `CLI.md` for command usage details.
 ```text
 src/                  # CLI implementation
 .opencode/            # Agents, commands, skills, tools, plugins
-.beads/               # Task tracking database and artifacts
+.beads/               # Durable user-facing task ledger and published artifacts
 tsdown.config.ts      # Build configuration for the CLI bundle
 dist/                 # Build output (generated)
 ```
+
+`.sisyphus/` is rebuildable runtime and planning state for this integration story. It is not the documented durable source of truth.
+
+Schema-1 durable artifacts under `.beads/artifacts/*` are namespaced, not flat: `ock` owns `.beads/artifacts/manifests/index.schema-1.json` plus `.beads/artifacts/plan-snapshots/<bead-id>/...`, while OMO only writes `.beads/artifacts/runtime-attachments/registry.schema-1.json` and `.beads/artifacts/runtime-checkpoints/checkpoint-<session-id>.schema-1.json`.
 
 ## Development
 

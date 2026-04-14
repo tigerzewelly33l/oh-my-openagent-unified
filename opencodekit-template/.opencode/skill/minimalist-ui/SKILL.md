@@ -1,9 +1,22 @@
 ---
 name: minimalist-ui
 description: Use INSTEAD OF design-taste-frontend when user requests clean, editorial, or minimalist aesthetics. Warm monochrome palette, typographic contrast, flat bento grids, muted pastels. No gradients, no heavy shadows.
+version: 1.0.0
+tags: [ui, design]
+dependencies: []
 ---
 
 # Protocol: Premium Utilitarian Minimalism UI Architect
+
+## When to Use
+
+- The user wants a clean, editorial, premium-minimal, or restrained monochrome interface.
+- Building calm product, portfolio, documentation, or brand surfaces where whitespace and typography carry the design.
+
+## When NOT to Use
+
+- Brutalist, maximalist, neon, playful, or highly animated visual directions.
+- Work that only needs small UI bug fixes without a broader design pass.
 
 ## 1. Protocol Overview
 Name: Premium Utilitarian Minimalism & Editorial UI

@@ -1,6 +1,9 @@
 ---
 name: webclaw
 description: MUST load when webfetch returns 403 or bot protection errors, when crawling documentation sites, batch-extracting pages, or extracting brand identity. Primary web scraping tool — prefer over webfetch for all non-trivial scraping.
+version: 1.0.0
+tags: [research, mcp, automation, documentation]
+dependencies: []
 ---
 
 # Webclaw Skill
@@ -25,6 +28,11 @@ Fast, local-first web content extraction for LLMs. Rust-based scraper with TLS f
 | Track doc changes      | `diff`                 | Snapshot + compare workflow                |
 | Extract brand identity | `brand`                | Colors, fonts, logos from any site         |
 | LLM-optimized output   | `scrape` with `-f llm` | 67% fewer tokens than raw HTML             |
+
+## When NOT to Use
+
+- Simple single-page fetches that already work with the built-in `webfetch` tool.
+- Browser-automation tasks that require real JavaScript execution; use Playwright instead.
 
 ## MCP Tools (8 local, no API key needed)
 

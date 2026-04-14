@@ -1,13 +1,6 @@
 import { execFileSync } from "node:child_process";
-import {
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { assertBeadsRuntimeCommandContracts } from "./beads-runtime-command-assertions.js";
@@ -15,7 +8,6 @@ import { writeRuntimeArtifacts } from "./beads-runtime-test-artifacts.js";
 import { installFakeRuntimeBinaries } from "./beads-runtime-test-binaries.js";
 
 const TEMPLATE_ROOT = new URL("../..", import.meta.url);
-const TEMPLATE_ROOT_PATH = fileURLToPath(TEMPLATE_ROOT);
 
 const promptMocks = vi.hoisted(() => ({
 	intro: vi.fn(),
@@ -50,11 +42,12 @@ vi.mock("./init/paths.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("./init/paths.js")>();
 	return {
 		...actual,
-		getTemplateRoot: () => TEMPLATE_ROOT_PATH,
+		getTemplateRoot: () => TEMPLATE_ROOT.pathname,
 		getPackageVersion: () => "0.20.1-test",
 	};
 });
 
+import { doctorCommand } from "./doctor.js";
 import { initCommand } from "./init.js";
 import { createTempProject } from "./opencode-project-fixture.js";
 
@@ -62,7 +55,6 @@ const ORIGINAL_ARGV = [...process.argv];
 const ORIGINAL_CWD = process.cwd();
 const ORIGINAL_PATH = process.env.PATH;
 const ORIGINAL_XDG_CONFIG_HOME = process.env.XDG_CONFIG_HOME;
-const TEMP_DIRS: string[] = [];
 
 afterEach(() => {
 	process.argv = [...ORIGINAL_ARGV];
@@ -82,97 +74,12 @@ afterEach(() => {
 	promptMocks.spinnerStart.mockReset();
 	promptMocks.spinnerStop.mockReset();
 	vi.restoreAllMocks();
-	for (const tempDir of TEMP_DIRS.splice(0)) {
-		rmSync(tempDir, { recursive: true, force: true });
-	}
 });
 
 describe("beads runtime temp-project acceptance", () => {
-	it("installs cross-platform fake runtime binaries and filters in-progress bead listings", () => {
-		const projectDir = createTempProject("ock-beads-runtime-binaries-");
-		TEMP_DIRS.push(projectDir);
-		installFakeRuntimeBinaries(projectDir, ORIGINAL_PATH);
-
-		expect(existsSync(join(projectDir, "bin", "npm"))).toBe(true);
-		expect(existsSync(join(projectDir, "bin", "br"))).toBe(true);
-		expect(existsSync(join(projectDir, "bin", "npm.cmd"))).toBe(true);
-		expect(existsSync(join(projectDir, "bin", "br.cmd"))).toBe(true);
-
-		mkdirSync(join(projectDir, ".beads"), { recursive: true });
-		writeFileSync(
-			join(projectDir, ".beads", "ledger.json"),
-			JSON.stringify(
-				{
-					next: 4,
-					tasks: [
-						{ id: "bd-1", title: "Open task", status: "open" },
-						{ id: "bd-2", title: "In progress task", status: "in_progress" },
-						{ id: "bd-3", title: "Completed task", status: "completed" },
-					],
-					deps: [],
-					syncs: 0,
-				},
-				null,
-				2,
-			),
-		);
-
-		const listed = JSON.parse(
-			execFileSync("br", ["list", "--status", "in_progress", "--json"], {
-				cwd: projectDir,
-				encoding: "utf-8",
-			}),
-		) as {
-			issues: Array<{ id: string; title: string; status: string }>;
-			total: number;
-			limit: number;
-			offset: number;
-			has_more: boolean;
-		};
-
-		expect(listed).toEqual({
-			issues: [
-				{ id: "bd-2", title: "In progress task", status: "in_progress" },
-			],
-			total: 1,
-			limit: 50,
-			offset: 0,
-			has_more: false,
-		});
-
-		writeFileSync(
-			join(projectDir, ".beads", "ledger.json"),
-			JSON.stringify(
-				{
-					next: 4,
-					tasks: [
-						{ id: "bd-1", title: "Completed parent", status: "completed" },
-						{ id: "bd-2", title: "Ready child", status: "open" },
-						{ id: "bd-3", title: "Active task", status: "in_progress" },
-					],
-					deps: [{ child: "bd-2", parent: "bd-1" }],
-					syncs: 0,
-				},
-				null,
-				2,
-			),
-		);
-
-		const ready = JSON.parse(
-			execFileSync("br", ["ready", "--json"], {
-				cwd: projectDir,
-				encoding: "utf-8",
-			}),
-		) as Array<{ id: string; title: string; status: string }>;
-		expect(ready).toEqual([
-			{ id: "bd-2", title: "Ready child", status: "open" },
-		]);
-	});
-
 	it("executes the integrated beads runtime contract in a temp project without crossing authored ownership boundaries", async () => {
 		const projectDir = createTempProject("ock-beads-acceptance-");
 		const xdgDir = createTempProject("ock-xdg-");
-		TEMP_DIRS.push(projectDir, xdgDir);
 		process.env.XDG_CONFIG_HOME = xdgDir;
 		installFakeRuntimeBinaries(projectDir, ORIGINAL_PATH);
 		process.chdir(projectDir);
@@ -180,19 +87,19 @@ describe("beads runtime temp-project acceptance", () => {
 
 		await initCommand({ beads: true, yes: true });
 
-		const bridgeConfig = readFileSync(
-			join(projectDir, ".opencode", "oh-my-openagent.jsonc"),
-			"utf-8",
-		);
-		const templateBridgeConfig = readFileSync(
-			join(TEMPLATE_ROOT_PATH, ".opencode", "oh-my-openagent.jsonc"),
-			"utf-8",
-		);
+		const bridgeConfig = JSON.parse(
+			readFileSync(
+				join(projectDir, ".opencode", "oh-my-openagent.jsonc"),
+				"utf-8",
+			),
+		) as { experimental: { beads_runtime: boolean; task_system: boolean } };
 		const opencodeConfig = JSON.parse(
 			readFileSync(join(projectDir, ".opencode", "opencode.json"), "utf-8"),
 		) as { plugin: string[] };
-		expect(bridgeConfig).toBe(templateBridgeConfig);
-		expect(bridgeConfig).toContain("Managed by ock bridge artifacts");
+		expect(bridgeConfig.experimental).toEqual({
+			beads_runtime: true,
+			task_system: false,
+		});
 		expect(opencodeConfig.plugin).toContain("oh-my-openagent");
 
 		const taskA = JSON.parse(
@@ -224,89 +131,78 @@ describe("beads runtime temp-project acceptance", () => {
 		) as Array<{ id: string; title: string; status: string }>;
 		expect(ready).toEqual([{ id: taskA.id, title: "Task A", status: "open" }]);
 
+		const consoleSpy = vi
+			.spyOn(console, "log")
+			.mockImplementation(() => undefined);
+		await doctorCommand();
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining("br ready --json succeeded in the current repo"),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining("no runtime checkpoint artifacts detected"),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"runtime attachment registry is consistent (0 attachments)",
+			),
+		);
+		expect(process.exitCode).not.toBe(1);
 		expect(existsSync(join(projectDir, ".beads", "verify.log"))).toBe(false);
-		expect(existsSync(join(projectDir, ".beads", "issues.jsonl"))).toBe(true);
 		expect(
 			existsSync(
-				join(projectDir, ".beads", "artifacts", "runtime-attachments.json"),
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"manifests",
+					"index.schema-1.json",
+				),
 			),
-		).toBe(false);
+		).toBe(true);
+		expect(
+			JSON.parse(
+				readFileSync(
+					join(
+						projectDir,
+						".beads",
+						"artifacts",
+						"runtime-attachments",
+						"registry.schema-1.json",
+					),
+					"utf-8",
+				),
+			),
+		).toMatchObject({
+			schemaVersion: 1,
+			attachments: {},
+		});
 		expect(
 			existsSync(
-				join(projectDir, ".beads", "artifacts", "checkpoint-ses-root.json"),
+				join(
+					projectDir,
+					".beads",
+					"artifacts",
+					"runtime-checkpoints",
+					"checkpoint-ses-root.schema-1.json",
+				),
 			),
 		).toBe(false);
 
-		const { continuationDirectory, activePlan, reconciledAt, startedAt } =
+		const { continuationDirectory, activePlan, startedAt } =
 			writeRuntimeArtifacts(projectDir, taskA.id);
-		const checkpointPath = join(
-			projectDir,
-			".beads",
-			"artifacts",
-			"checkpoint-ses-root.json",
-		);
-		const attachmentPath = join(
-			projectDir,
-			".beads",
-			"artifacts",
-			"runtime-attachments.json",
-		);
-		const boulderPath = join(
-			continuationDirectory,
-			".sisyphus",
-			"boulder.json",
-		);
 
-		expect(existsSync(checkpointPath)).toBe(true);
-		expect(existsSync(attachmentPath)).toBe(true);
-		expect(existsSync(boulderPath)).toBe(true);
-
-		const checkpoint = JSON.parse(readFileSync(checkpointPath, "utf-8")) as {
-			active_plan: string;
-			bead_id: string;
-			started_at: string;
-		};
-		const attachments = JSON.parse(
-			readFileSync(attachmentPath, "utf-8"),
-		) as Record<
-			string,
-			{
-				activePlan: string;
-				attachedAt: string;
-				beadID: string;
-				continuationDirectory: string;
-				startedAt: string;
-				worktreePath: string;
-			}
-		>;
-		const boulder = JSON.parse(readFileSync(boulderPath, "utf-8")) as {
-			active_plan: string;
-			bead_id: string;
-			bead_last_reconciled_at?: string;
-			started_at: string;
-		};
-
-		expect(checkpoint).toMatchObject({
-			active_plan: activePlan,
-			bead_id: taskA.id,
-			session_id: "ses-root",
-			started_at: startedAt,
-		});
-		expect(attachments[`${taskA.id}::${startedAt}`]).toMatchObject({
-			activePlan,
-			attachedAt: reconciledAt,
-			beadID: taskA.id,
-			continuationDirectory,
-			sourceCommand: "start",
-			startedAt,
-			worktreePath: projectDir,
-		});
-		expect(boulder).toMatchObject({
-			active_plan: activePlan,
-			bead_id: taskA.id,
-			bead_last_reconciled_at: reconciledAt,
-			started_at: startedAt,
-		});
+		consoleSpy.mockClear();
+		process.exitCode = undefined;
+		await doctorCommand();
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining(`active checkpoint includes bead_id ${taskA.id}`),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining("runtime attachment registry is consistent"),
+		);
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining("br ready --json succeeded in the current repo"),
+		);
 
 		writeFileSync(
 			join(continuationDirectory, ".sisyphus", "boulder.json"),
@@ -321,17 +217,13 @@ describe("beads runtime temp-project acceptance", () => {
 			),
 		);
 
-		const staleBoulder = JSON.parse(readFileSync(boulderPath, "utf-8")) as {
-			active_plan: string;
-			bead_id: string;
-			bead_last_reconciled_at?: string;
-			started_at: string;
-		};
-		expect(staleBoulder).toEqual({
-			active_plan: activePlan,
-			bead_id: taskA.id,
-			started_at: startedAt,
-		});
+		consoleSpy.mockClear();
+		process.exitCode = undefined;
+		await doctorCommand();
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining("stale attach/reconcile artifacts detected"),
+		);
+		expect(process.exitCode).toBe(2);
 
 		const ledger = JSON.parse(
 			readFileSync(join(projectDir, ".beads", "ledger.json"), "utf-8"),
