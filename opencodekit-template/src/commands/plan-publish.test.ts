@@ -16,7 +16,7 @@ import {
 	createTempProject,
 } from "./opencode-project-fixture.js";
 import { planPublishCommand, publishPlanSnapshot } from "./plan-publish.js";
-import { TSX_LOADER_PATH } from "./test-cli-paths.js";
+import { SOURCE_CLI_ENTRY_PATH, TSX_LOADER_PATH } from "./test-cli-paths.js";
 
 const promptMocks = vi.hoisted(() => ({
 	outro: vi.fn(),
@@ -140,7 +140,7 @@ describe("plan publish durable snapshot flow", () => {
 			[
 				"--import",
 				TSX_LOADER_PATH,
-				"/work/ock-omo-system/opencodekit-template/src/index.ts",
+				SOURCE_CLI_ENTRY_PATH,
 				"plan",
 				"publish",
 				"--bead",
@@ -165,13 +165,7 @@ describe("plan publish durable snapshot flow", () => {
 
 		const result = spawnSync(
 			"node",
-			[
-				"--import",
-				TSX_LOADER_PATH,
-				"/work/ock-omo-system/opencodekit-template/src/index.ts",
-				"plan",
-				"nonsense",
-			],
+			["--import", TSX_LOADER_PATH, SOURCE_CLI_ENTRY_PATH, "plan", "nonsense"],
 			{
 				cwd: projectDir,
 				encoding: "utf-8",

@@ -6,7 +6,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { installFakeRuntimeBinaries } from "./commands/beads-runtime-test-binaries.js";
-import { TSX_LOADER_PATH } from "./commands/test-cli-paths.js";
+import {
+	SOURCE_CLI_ENTRY_PATH,
+	TSX_LOADER_PATH,
+} from "./commands/test-cli-paths.js";
 
 function getRegisteredCommandNames(source: string): string[] {
 	const matches = source.matchAll(/\.command\(\s*"([^"]+)"/g);
@@ -63,12 +66,7 @@ function createCliFixture(prefix: string) {
 function runSourceCli(projectDir: string, args: string[]) {
 	return spawnSync(
 		"node",
-		[
-			"--import",
-			TSX_LOADER_PATH,
-			"/work/ock-omo-system/opencodekit-template/src/index.ts",
-			...args,
-		],
+		["--import", TSX_LOADER_PATH, SOURCE_CLI_ENTRY_PATH, ...args],
 		{
 			cwd: projectDir,
 			encoding: "utf-8",

@@ -18,7 +18,7 @@ import {
 } from "./opencode-project-fixture.js";
 import { publishPlanSnapshot } from "./plan-publish.js";
 import { repairRuntimeState } from "./runtime-state-repair.js";
-import { TSX_LOADER_PATH } from "./test-cli-paths.js";
+import { SOURCE_CLI_ENTRY_PATH, TSX_LOADER_PATH } from "./test-cli-paths.js";
 
 const ORIGINAL_CWD = process.cwd();
 const ORIGINAL_PATH = process.env.PATH;
@@ -219,7 +219,7 @@ describe("runtime-state repair", () => {
 			[
 				"--import",
 				TSX_LOADER_PATH,
-				"/work/ock-omo-system/opencodekit-template/src/index.ts",
+				SOURCE_CLI_ENTRY_PATH,
 				"doctor",
 				"--repair",
 				"runtime-state",
@@ -283,7 +283,7 @@ describe("runtime-state repair", () => {
 			[
 				"--import",
 				TSX_LOADER_PATH,
-				"/work/ock-omo-system/opencodekit-template/src/index.ts",
+				SOURCE_CLI_ENTRY_PATH,
 				"doctor",
 				"--repair",
 				"runtime-state",
