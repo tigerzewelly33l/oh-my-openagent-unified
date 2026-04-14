@@ -9,9 +9,10 @@
 > - Capability Ownership Matrix + Bridge Matrix inside `MVP.md`
 > - Runtime / Toolchain / Naming / Config contracts inside `MVP.md`
 > - Migration paths + executable smoke-test appendix inside `MVP.md`
->   **Effort**: Short
->   **Parallel**: YES - 2 waves
->   **Critical Path**: 1 → (2, 3, 4, 5) → 6 → 7 → 8 → 9
+
+**Effort**: Short
+**Parallel**: YES - 2 waves
+**Critical Path**: 1 → (2, 3, 4, 5) → 6 → 7 → 8 → 9
 
 ## Context
 
