@@ -558,10 +558,10 @@ Wave 2: 6) migration + preserve/skip contract, 7) draft full `MVP.md`, 8) add ac
 > **Do NOT auto-proceed after verification. Wait for user's explicit approval before marking work complete.**
 > **Never mark F1-F4 as checked before getting user's okay.** Rejection or user feedback -> fix -> re-run -> present again -> wait for okay.
 
-- [x] F1. Plan Compliance Audit — oracle
-- [x] F2. Document Quality Review — unspecified-high
-- [x] F3. Real Manual QA — unspecified-high
-- [x] F4. Scope Fidelity Check — deep
+- [ ] F1. Plan Compliance Audit — oracle
+- [ ] F2. Document Quality Review — unspecified-high
+- [ ] F3. Real Manual QA — unspecified-high
+- [ ] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
 

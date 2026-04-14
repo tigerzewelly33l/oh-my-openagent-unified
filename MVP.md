@@ -23,10 +23,10 @@ The outcome we want is simple: a user feels like they are using one coherent sys
 
 The target model for this integration story is **dual-store, single-control-plane**.
 
-- `.beads` is the documented durable and user-facing state surface.
-- `.sisyphus` is rebuildable runtime and planning state behind the public `ock` surface.
-- `ock` is the public command authority.
-- OMO is the internal runtime and orchestration engine.
+- `.beads` remains the documented durable and user-facing state surface.
+- Behind the public `ock` surface, `.sisyphus` holds rebuildable runtime and planning state.
+- `ock` serves as the public command authority.
+- OMO handles the internal runtime and orchestration engine.
 - This contract does not permit a literal storage merge between `.beads` and `.sisyphus`.
 
 ### State Taxonomy
