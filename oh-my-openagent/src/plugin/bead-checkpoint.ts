@@ -1,14 +1,16 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import packageJson from "../../package.json" with { type: "json" };
 
 import { readBoulderState } from "../features/boulder-state";
 import { log } from "../shared";
 
 const BEADS_ARTIFACTS_DIR = join(".beads", "artifacts", "runtime-checkpoints");
 const ARTIFACTS_SCHEMA_VERSION = 1;
+const RUNTIME_VERSION = packageJson.version;
 const RUNTIME_PRODUCER = {
 	name: "oh-my-openagent",
-	version: "3.16.0",
+	version: RUNTIME_VERSION,
 };
 
 export function writeBeadCheckpoint(

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import packageJson from "../../package.json" with { type: "json" };
 
 import { writeBoulderState } from "../features/boulder-state";
 
@@ -57,8 +58,8 @@ describe("writeBeadCheckpoint", () => {
 
 		expect(checkpoint).toMatchObject({
 			schemaVersion: 1,
-			producer: { name: "omo", version: "3.16.0" },
-			runtime: { name: "oh-my-openagent", version: "3.16.0" },
+			producer: { name: "omo", version: packageJson.version },
+			runtime: { name: "oh-my-openagent", version: packageJson.version },
 			session_id: "ses-root",
 			active_plan: "/tmp/plan.md",
 			plan_name: "plan",
