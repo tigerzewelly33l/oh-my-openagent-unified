@@ -1,6 +1,6 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 export interface OpencodeProjectFixtureOptions {
 	installDependencies?: boolean;
@@ -28,9 +28,6 @@ export function createOpencodeProject(
 			plugin: ["oh-my-openagent"],
 		}),
 	);
-	writeFileSync(
-		join(opencodeDir, "package.json"),
-		JSON.stringify({ name: "fixture" }),
-	);
+	writeFileSync(join(opencodeDir, "package.json"), JSON.stringify({ name: "fixture" }));
 	return opencodeDir;
 }

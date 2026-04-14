@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 interface DriftIssue {
@@ -29,17 +29,10 @@ function collectMarkdownFilesRecursive(dir: string): string[] {
 	const files: string[] = [];
 	for (const entry of readdirSync(dir).sort()) {
 		const fullPath = join(dir, entry);
-		let stats: ReturnType<typeof lstatSync>;
-		try {
-			stats = lstatSync(fullPath);
-		} catch {
-			continue;
-		}
-
+		const stats = lstatSync(fullPath);
 		if (stats.isSymbolicLink()) {
 			continue;
 		}
-
 		if (stats.isDirectory()) {
 			files.push(...collectMarkdownFilesRecursive(fullPath));
 			continue;
@@ -187,7 +180,10 @@ function checkLegacySessionToolReferences(projectRoot: string): DriftIssue[] {
 		...collectMarkdownFilesRecursive(join(projectRoot, ".opencode", "command")),
 		...collectMarkdownFilesRecursive(join(projectRoot, ".opencode", "skill")),
 		join(projectRoot, ".opencode", "AGENTS.md"),
-	].filter((filePath, index, values) => values.indexOf(filePath) === index && existsSync(filePath));
+	].filter(
+		(filePath, index, values) =>
+			values.indexOf(filePath) === index && existsSync(filePath),
+	);
 
 	for (const filePath of targetFiles) {
 		const content = read(filePath);
@@ -208,16 +204,16 @@ function checkLegacySessionToolReferences(projectRoot: string): DriftIssue[] {
 
 function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
 	const issues: DriftIssue[] = [];
-	const targetFiles = collectMarkdownFilesRecursive(join(projectRoot, ".opencode"));
+	const targetFiles = collectMarkdownFilesRecursive(
+		join(projectRoot, ".opencode"),
+	);
 
 	for (const filePath of targetFiles) {
 		const content = read(filePath);
-		const legacySkillNameMatches = Array.from(
-			content.matchAll(
-				/skill_mcp\s*\(\s*(?:skill_name\s*=|\{[^)]*\bskill_name\s*:)/g,
-			),
+		const legacySkillNameMatches = content.match(
+			/skill_mcp\(\s*skill_name\s*=|skill_mcp\(\s*\{[^)]*\bskill_name\s*:/g,
 		);
-		if (legacySkillNameMatches.length > 0) {
+		if (legacySkillNameMatches && legacySkillNameMatches.length > 0) {
 			issues.push({
 				rule: "legacy-skill-mcp-syntax",
 				message: `${filePath} still contains legacy skill_mcp skill_name syntax`,
@@ -232,15 +228,21 @@ function checkLegacySkillMcpDocReferences(projectRoot: string): DriftIssue[] {
 			continue;
 		}
 
-		const mentionsAreExplicitlyDeprecated = deprecatedSurfaceMatches.every((match) => {
-			const index = match.index ?? -1;
-			if (index < 0) {
-				return false;
-			}
-
-			const context = content.slice(Math.max(0, index - 120), Math.min(content.length, index + 160)).toLowerCase();
-			return context.includes("deprecated") || context.includes("unsupported");
-		});
+		const mentionsAreExplicitlyDeprecated = deprecatedSurfaceMatches.every(
+			(match) => {
+				const index = match.index ?? -1;
+				if (index < 0) {
+					return false;
+				}
+				const lineStart = content.lastIndexOf("\n", index) + 1;
+				const nextNewline = content.indexOf("\n", index);
+				const lineEnd = nextNewline === -1 ? content.length : nextNewline;
+				const context = content.slice(lineStart, lineEnd).toLowerCase();
+				return (
+					context.includes("deprecated") || context.includes("unsupported")
+				);
+			},
+		);
 
 		if (!mentionsAreExplicitlyDeprecated) {
 			issues.push({

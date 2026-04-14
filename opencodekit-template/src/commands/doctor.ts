@@ -1,437 +1,435 @@
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as p from "@clack/prompts";
-import { parse } from "jsonc-parser";
 import color from "picocolors";
-import { z } from "zod";
-import { getBridgeHealthReport } from "../utils/bridge-diagnostics.js";
+import {
+	type BeadsRuntimeCheck,
+	getBeadsRuntimeHealthReport,
+	getBridgeHealthReport,
+} from "./bridge-diagnostics.js";
+import {
+	createMachineReadableDiagnosticsPayload,
+	createUnificationDiagnosticCheck,
+	DIAGNOSTIC_CODES,
+	type MachineReadableDiagnosticsPayload,
+	type UnificationDiagnosticCheck,
+} from "./diagnostic-codes.js";
+import {
+	type CheckResult,
+	collectDoctorSectionChecks,
+	displayChecks,
+} from "./doctor-checks.js";
+import {
+	createRuntimeStateRepairedCheck,
+	repairRuntimeState,
+} from "./runtime-state-repair.js";
 
-export interface CheckResult {
-	name: string;
-	ok: boolean;
-	fix?: string;
-	warn?: boolean;
+export interface DoctorCommandOptions {
+	repair?: string;
+	json?: boolean;
+	bead?: string;
 }
 
-const KNOWN_CONFIG_PROPERTIES = new Set([
-	"$schema",
-	"model",
-	"small_model",
-	"theme",
-	"share",
-	"autoupdate",
-	"mcp",
-	"permission",
-	"keybinds",
-	"provider",
-	"agent",
-	"formatter",
-	"plugin",
-	"tools",
-	"tui",
-	"command",
-	"watcher",
-	"snapshot",
-	"disabled_providers",
-	"enabled_providers",
-	"username",
-	"lsp",
-	"instructions",
-	"enterprise",
-	"experimental",
-	"compaction",
-]);
-
-const DoctorConfigSchema = z.object({
-	$schema: z.string().optional(),
-	model: z.string().optional(),
-	mcp: z.record(z.string(), z.object({ command: z.string().optional(), url: z.string().optional() })).optional(),
-	agent: z.record(z.string(), z.unknown()).optional(),
-}).catchall(z.unknown());
-
-export async function doctorCommand() {
-	const quiet = process.argv.includes("--quiet");
+export async function doctorCommand(options: DoctorCommandOptions = {}) {
+	if (process.argv.includes("--quiet")) return;
+	if (options.repair) {
+		await runDoctorRepair(options);
+		return;
+	}
 
 	const cwd = process.cwd();
 	const opencodeDir = join(cwd, ".opencode");
 	const bridgeHealth = getBridgeHealthReport(opencodeDir);
-
-	if (!quiet) {
-		p.intro(color.bgBlue(color.white(" Doctor - Health Check ")));
-	}
-
-	const checks: CheckResult[] = [];
+	const beadsRuntimeHealth = getBeadsRuntimeHealthReport({
+		projectDir: cwd,
+		opencodeDir,
+	});
 	const warnings: CheckResult[] = [];
-
-	if (!quiet) {
-		console.log();
-		console.log(color.bold("  Structure"));
-	}
-
-	checks.push({
-		name: ".opencode/ exists",
-		ok: existsSync(opencodeDir),
-		fix: "ock init",
+	const {
+		structureChecks,
+		configurationChecks,
+		agentChecks,
+		skillChecks,
+		toolChecks,
+	} = collectDoctorSectionChecks(opencodeDir, warnings);
+	const checks = [
+		...structureChecks,
+		...configurationChecks,
+		...agentChecks,
+		...skillChecks,
+		...toolChecks,
+	];
+	const bridgeChecks = ensureHealthyBridgeChecks(bridgeHealth);
+	const beadsRuntimeChecks =
+		ensureHealthyBeadsRuntimeChecks(beadsRuntimeHealth);
+	const doctorChecks = createDoctorContractChecks(
+		opencodeDir,
+		cwd,
+		warnings,
+		checks,
+	);
+	const allChecks = [...doctorChecks, ...bridgeChecks, ...beadsRuntimeChecks];
+	const payload = createMachineReadableDiagnosticsPayload({
+		surface: "doctor",
+		mode: "health",
+		checks: allChecks,
 	});
 
-	const configPath = join(opencodeDir, "opencode.json");
-	checks.push({
-		name: "opencode.json exists",
-		ok: existsSync(configPath),
-		fix: "ock init --force",
-	});
-
-	checks.push({
-		name: "package.json exists",
-		ok: existsSync(join(opencodeDir, "package.json")),
-		fix: "ock init --force",
-	});
-
-	checks.push({
-		name: "Dependencies installed",
-		ok: existsSync(join(opencodeDir, "node_modules")),
-		fix: "cd .opencode && npm install",
-	});
-
-	if (!quiet) {
-		displayChecks(checks.slice(-4));
+	if (options.json) {
+		console.log(JSON.stringify(payload, null, 2));
+		process.exitCode = exitCodeForLevel(payload.level);
+		return;
 	}
 
-	if (existsSync(configPath)) {
-		if (!quiet) {
-			console.log();
-			console.log(color.bold("  Configuration"));
-		}
+	p.intro(color.bgBlue(color.white(" Doctor - Health Check ")));
 
-		const configChecks: CheckResult[] = [];
+	console.log();
+	console.log(color.bold("  Structure"));
+	displayChecks(structureChecks);
 
-		try {
-			const configContent = readFileSync(configPath, "utf-8");
-			const parseErrors: NonNullable<Parameters<typeof parse>[1]> = [];
-			const parsedConfig = parse(configContent, parseErrors);
-			if (parseErrors.length > 0) {
-				throw new Error(`Invalid JSONC in ${configPath}`);
-			}
-			const config = DoctorConfigSchema.parse(parsedConfig);
+	console.log();
+	console.log(color.bold("  Configuration"));
+	displayChecks(configurationChecks);
 
-			configChecks.push({
-				name: "$schema reference",
-				ok: !!config.$schema,
-				fix: 'Add "$schema": "https://opencode.ai/config.json"',
-				warn: true,
-			});
+	console.log();
+	console.log(color.bold("  Agents"));
+	displayChecks(agentChecks);
 
-			const unknownProps = Object.keys(config).filter(
-				(k) => !KNOWN_CONFIG_PROPERTIES.has(k),
-			);
-			if (unknownProps.length > 0) {
-				warnings.push({
-					name: `Unknown config properties: ${unknownProps.join(", ")}`,
-					ok: false,
-					warn: true,
-				});
-			}
+	console.log();
+	console.log(color.bold("  Skills"));
+	displayChecks(skillChecks);
 
-			configChecks.push({
-				name: "Model configured",
-				ok: !!config.model,
-				fix: "ock config model",
-				warn: true,
-			});
+	console.log();
+	console.log(color.bold("  Tools"));
+	displayChecks(toolChecks);
 
-			const mcpConfig = config.mcp;
-			if (mcpConfig) {
-				const mcpServers = Object.keys(mcpConfig);
-				const invalidMcp = mcpServers.filter((name) => {
-					const server = mcpConfig[name];
-					return !server.command && !server.url;
-				});
+	console.log();
+	console.log(color.bold("  Bridge"));
+	renderBridgeSection(bridgeHealth);
 
-				configChecks.push({
-					name: `MCP servers (${mcpServers.length} configured)`,
-					ok: invalidMcp.length === 0,
-					fix:
-						invalidMcp.length > 0
-							? `Fix: ${invalidMcp.join(", ")} need command or url`
-							: undefined,
-				});
-			}
+	console.log();
+	console.log(color.bold("  Beads Runtime"));
+	renderBeadsRuntimeChecks(beadsRuntimeHealth.checks);
 
-			if (config.agent) {
-				const configuredAgents = Object.keys(config.agent);
-				const agentDir = join(opencodeDir, "agent");
-				const missingFiles = configuredAgents.filter(
-					(name) => !existsSync(join(agentDir, `${name}.md`)),
-				);
-
-				if (missingFiles.length > 0) {
-					warnings.push({
-						name: `Agent config without files: ${missingFiles.join(", ")}`,
-						ok: false,
-						warn: true,
-					});
-				}
-			}
-
-			checks.push(...configChecks);
-			if (!quiet) {
-				displayChecks(configChecks);
-			}
-		} catch {
-			checks.push({
-				name: "Valid opencode.json syntax and structure",
-				ok: false,
-				fix: "Fix opencode.json syntax or schema errors",
-			});
-			if (!quiet) {
-				displayChecks([checks[checks.length - 1]]);
-			}
-		}
-	}
-
-	if (!quiet) {
-		console.log();
-		console.log(color.bold("  Agents"));
-	}
-
-	const agentDir = join(opencodeDir, "agent");
-	const agentChecks: CheckResult[] = [];
-
-	if (existsSync(agentDir)) {
-		const agentFiles = readdirSync(agentDir).filter((f) => f.endsWith(".md"));
-
-		agentChecks.push({
-			name: `Agent files (${agentFiles.length} found)`,
-			ok: agentFiles.length > 0,
-			fix: "ock agent create",
-		});
-
-		for (const file of agentFiles) {
-			const content = readFileSync(join(agentDir, file), "utf-8");
-			const hasFrontmatter = content.startsWith("---");
-			const hasMode = content.includes("mode:");
-
-			if (!hasFrontmatter) {
-				warnings.push({
-					name: `${file}: Missing frontmatter`,
-					ok: false,
-					warn: true,
-				});
-			} else if (!hasMode) {
-				warnings.push({
-					name: `${file}: Missing mode in frontmatter`,
-					ok: false,
-					warn: true,
-				});
-			}
-		}
-	} else {
-		agentChecks.push({
-			name: "agent/ directory",
-			ok: false,
-			fix: "ock agent create",
-		});
-	}
-
-	checks.push(...agentChecks);
-	if (!quiet) {
-		displayChecks(agentChecks);
-	}
-
-	if (!quiet) {
-		console.log();
-		console.log(color.bold("  Skills"));
-	}
-
-	const skillDir = join(opencodeDir, "skill");
-	const skillChecks: CheckResult[] = [];
-
-	if (existsSync(skillDir)) {
-		const skillFolders = readdirSync(skillDir).filter((f) =>
-			lstatSync(join(skillDir, f)).isDirectory(),
-		);
-
-		const validSkills = skillFolders.filter((folder) =>
-			existsSync(join(skillDir, folder, "SKILL.md")),
-		);
-
-		skillChecks.push({
-			name: `Skills (${validSkills.length} valid)`,
-			ok: validSkills.length > 0,
-			fix: "ock skill create",
-		});
-
-		const invalidFolders = skillFolders.filter(
-			(f) => !existsSync(join(skillDir, f, "SKILL.md")),
-		);
-		if (invalidFolders.length > 0) {
-			warnings.push({
-				name: `Skill folders missing SKILL.md: ${invalidFolders.slice(0, 3).join(", ")}${invalidFolders.length > 3 ? "..." : ""}`,
-				ok: false,
-				warn: true,
-			});
-		}
-
-		for (const folder of validSkills) {
-			const content = readFileSync(join(skillDir, folder, "SKILL.md"), "utf-8");
-			const hasFrontmatter = content.startsWith("---");
-			const hasName = content.includes("name:");
-			const hasDescription = content.includes("description:");
-
-			if (!hasFrontmatter || !hasName || !hasDescription) {
-				warnings.push({
-					name: `${folder}: Missing required frontmatter (name, description)`,
-					ok: false,
-					warn: true,
-				});
-			}
-		}
-	} else {
-		skillChecks.push({
-			name: "skill/ directory",
-			ok: false,
-			fix: "ock skill create",
-			warn: true,
-		});
-	}
-
-	checks.push(...skillChecks);
-	if (!quiet) {
-		displayChecks(skillChecks);
-	}
-
-	if (!quiet) {
-		console.log();
-		console.log(color.bold("  Tools"));
-	}
-
-	const toolDir = join(opencodeDir, "tool");
-	const toolChecks: CheckResult[] = [];
-
-	if (existsSync(toolDir)) {
-		const toolFiles = readdirSync(toolDir).filter((f) => f.endsWith(".ts"));
-
-		toolChecks.push({
-			name: `Custom tools (${toolFiles.length} found)`,
-			ok: true,
-		});
-
-		for (const file of toolFiles) {
-			const content = readFileSync(join(toolDir, file), "utf-8");
-			const hasExport =
-				content.includes("export default") || content.includes("export const");
-			const hasTool = content.includes("tool(");
-
-			if (!hasExport || !hasTool) {
-				warnings.push({
-					name: `${file}: Missing tool() export`,
-					ok: false,
-					warn: true,
-				});
-			}
-		}
-	} else {
-		toolChecks.push({
-			name: "tool/ directory (optional)",
-			ok: true,
-		});
-	}
-
-	checks.push(...toolChecks);
-	if (!quiet) {
-		displayChecks(toolChecks);
-	}
-
-	if (!quiet) {
-		console.log();
-		console.log(color.bold("  Bridge"));
-	}
-
-	if (!quiet) {
-		if (bridgeHealth.level === "OK") {
-			console.log(`  ${color.green("✓")} BRIDGE OK: canonical OMO runtime registration detected`);
-		} else {
-			for (const diagnostic of bridgeHealth.diagnostics) {
-				const prefix = diagnostic.level === "ERROR" ? color.red("✗") : color.yellow("!");
-				console.log(`  ${prefix} ${diagnostic.message}`);
-				if (diagnostic.details && diagnostic.details.length > 0) {
-					for (const detail of diagnostic.details.slice(0, 5)) {
-						console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
-					}
-					if (diagnostic.details.length > 5) {
-						console.log(color.dim(`    ... and ${diagnostic.details.length - 5} more`));
-					}
-				}
-			}
-		}
-	}
-
-	const errors = checks.filter((c) => !c.ok && !c.warn);
+	const errors = checks.filter((check) => !check.ok && !check.warn);
 	const warningCount =
 		warnings.length +
-		checks.filter((c) => !c.ok && c.warn).length +
-		bridgeHealth.diagnostics.filter((diagnostic) => diagnostic.level === "WARN").length;
+		checks.filter((check) => !check.ok && check.warn).length +
+		bridgeHealth.diagnostics.filter((diagnostic) => diagnostic.level === "WARN")
+			.length +
+		beadsRuntimeHealth.checks.filter((check) => check.level === "WARN").length;
 	const bridgeErrorCount = bridgeHealth.diagnostics.filter(
 		(diagnostic) => diagnostic.level === "ERROR",
 	).length;
+	const beadsRuntimeErrorCount = beadsRuntimeHealth.checks.filter(
+		(check) => check.level === "ERROR",
+	).length;
 
 	if (warnings.length > 0) {
-		if (!quiet) {
-			console.log();
-			console.log(color.bold("  Warnings"));
-			for (const warn of warnings.slice(0, 5)) {
-				console.log(`  ${color.yellow("!")} ${warn.name}`);
-			}
-			if (warnings.length > 5) {
-				console.log(color.dim(`    ... and ${warnings.length - 5} more`));
-			}
-		}
-	}
-
-	if (!quiet) {
 		console.log();
+		console.log(color.bold("  Warnings"));
+		for (const warn of warnings.slice(0, 5)) {
+			console.log(`  ${color.yellow("!")} ${warn.name}`);
+		}
+		if (warnings.length > 5) {
+			console.log(color.dim(`    ... and ${warnings.length - 5} more`));
+		}
 	}
 
-	if (errors.length === 0 && bridgeErrorCount === 0 && warningCount === 0) {
-		if (!quiet) {
-			p.outro(color.green("All checks passed!"));
-		}
+	console.log();
+
+	if (
+		errors.length === 0 &&
+		bridgeErrorCount === 0 &&
+		beadsRuntimeErrorCount === 0 &&
+		warningCount === 0
+	) {
+		p.outro(color.green("All checks passed!"));
 		process.exitCode = 0;
-	} else if (errors.length === 0 && bridgeErrorCount === 0) {
-		if (!quiet) {
-			p.outro(
-				color.yellow(
-					`Passed with ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
-				),
-			);
-		}
+		return;
+	}
+
+	if (
+		errors.length === 0 &&
+		bridgeErrorCount === 0 &&
+		beadsRuntimeErrorCount === 0
+	) {
+		p.outro(
+			color.yellow(
+				`Passed with ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
+			),
+		);
 		process.exitCode = 2;
+		return;
+	}
+
+	const totalErrors = errors.length + bridgeErrorCount + beadsRuntimeErrorCount;
+	p.outro(
+		color.red(
+			`${totalErrors} error${totalErrors > 1 ? "s" : ""}, ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
+		),
+	);
+	process.exitCode = 1;
+}
+
+async function runDoctorRepair(options: DoctorCommandOptions) {
+	if (options.repair !== "runtime-state") {
+		console.log(`Unknown doctor repair target: ${options.repair}`);
+		process.exitCode = 1;
+		return;
+	}
+
+	let result: ReturnType<typeof repairRuntimeState>;
+	try {
+		result = repairRuntimeState({
+			projectDir: process.cwd(),
+			beadId: options.bead,
+		});
+	} catch (error) {
+		if (isRuntimeStateRepairResult(error)) {
+			result = error;
+		} else {
+			throw error;
+		}
+	}
+
+	const checks = [
+		...result.diagnostics,
+		...(result.level === "ERROR"
+			? []
+			: [createRuntimeStateRepairedCheck(result)]),
+	];
+	const payload = createMachineReadableDiagnosticsPayload({
+		surface: "doctor",
+		mode: "repair",
+		checks,
+		level: result.level,
+	});
+
+	if (options.json) {
+		console.log(
+			JSON.stringify(
+				{
+					...payload,
+					repair: {
+						target: "runtime-state",
+						beadId: result.beadId || null,
+						boulderPath: result.boulderPath ?? null,
+						restoredPlanPath: result.restoredPlanPath ?? null,
+					},
+				},
+				null,
+				2,
+			),
+		);
 	} else {
-		if (!quiet) {
-			p.outro(
-				color.red(
-					`${errors.length + bridgeErrorCount} error${errors.length + bridgeErrorCount > 1 ? "s" : ""}, ${warningCount} warning${warningCount > 1 ? "s" : ""}`,
-				),
+		for (const diagnostic of result.diagnostics) {
+			const icon =
+				diagnostic.level === "ERROR" ? color.red("✗") : color.yellow("!");
+			console.log(`  ${icon} ${diagnostic.code}: ${diagnostic.message}`);
+			if (diagnostic.details) {
+				for (const detail of diagnostic.details) {
+					console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
+				}
+			}
+		}
+
+		if (result.boulderPath) {
+			console.log(
+				`  ${color.green("✓")} Rebuilt runtime state: ${result.boulderPath}`,
 			);
 		}
-		process.exitCode = 1;
+		if (result.restoredPlanPath) {
+			console.log(
+				`  ${color.green("✓")} Restored working plan: ${result.restoredPlanPath}`,
+			);
+		}
+	}
+
+	process.exitCode = exitCodeForLevel(result.level);
+}
+
+function isRuntimeStateRepairResult(
+	value: unknown,
+): value is ReturnType<typeof repairRuntimeState> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return false;
+	}
+
+	const candidate = value as Record<string, unknown>;
+	return (
+		(candidate.level === "OK" ||
+			candidate.level === "WARN" ||
+			candidate.level === "ERROR") &&
+		typeof candidate.beadId === "string" &&
+		Array.isArray(candidate.diagnostics)
+	);
+}
+
+function renderBridgeSection(
+	bridgeHealth: ReturnType<typeof getBridgeHealthReport>,
+) {
+	if (bridgeHealth.level === "OK") {
+		console.log(
+			`  ${color.green("✓")} BRIDGE OK: canonical OMO runtime registration detected`,
+		);
+		return;
+	}
+
+	for (const diagnostic of bridgeHealth.diagnostics) {
+		const prefix =
+			diagnostic.level === "ERROR" ? color.red("✗") : color.yellow("!");
+		console.log(`  ${prefix} ${diagnostic.message}`);
+		if (diagnostic.details && diagnostic.details.length > 0) {
+			for (const detail of diagnostic.details.slice(0, 5)) {
+				console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
+			}
+			if (diagnostic.details.length > 5) {
+				console.log(
+					color.dim(`    ... and ${diagnostic.details.length - 5} more`),
+				);
+			}
+		}
 	}
 }
 
-function displayChecks(checks: CheckResult[]) {
+function renderBeadsRuntimeChecks(checks: BeadsRuntimeCheck[]) {
 	for (const check of checks) {
-		if (check.ok) {
-			console.log(`  ${color.green("✓")} ${check.name}`);
-		} else if (check.warn) {
-			console.log(`  ${color.yellow("!")} ${check.name}`);
-			if (check.fix) {
-				console.log(`    ${color.dim("→")} ${color.dim(check.fix)}`);
+		const icon =
+			check.level === "OK"
+				? color.green("✓")
+				: check.level === "WARN"
+					? color.yellow("!")
+					: color.red("✗");
+		console.log(`  ${icon} ${check.name}: ${check.message}`);
+		if (check.details && check.details.length > 0) {
+			for (const detail of check.details.slice(0, 5)) {
+				console.log(`    ${color.dim("→")} ${color.dim(detail)}`);
 			}
-		} else {
-			console.log(`  ${color.red("✗")} ${check.name}`);
-			if (check.fix) {
-				console.log(`    ${color.dim("→ Run:")} ${color.cyan(check.fix)}`);
+			if (check.details.length > 5) {
+				console.log(color.dim(`    ... and ${check.details.length - 5} more`));
 			}
 		}
 	}
+}
+
+function ensureHealthyBridgeChecks(
+	bridgeHealth: ReturnType<typeof getBridgeHealthReport>,
+): UnificationDiagnosticCheck[] {
+	return bridgeHealth.diagnostics.length > 0
+		? bridgeHealth.diagnostics
+		: [
+				createUnificationDiagnosticCheck({
+					name: "bridge runtime registration",
+					code: DIAGNOSTIC_CODES.OK,
+					level: "OK",
+					owner: "ock",
+					canonicalStore: ".sisyphus",
+					repairable: false,
+					message: "BRIDGE OK: canonical OMO runtime registration detected",
+				}),
+			];
+}
+
+function ensureHealthyBeadsRuntimeChecks(
+	beadsRuntimeHealth: ReturnType<typeof getBeadsRuntimeHealthReport>,
+): BeadsRuntimeCheck[] {
+	return beadsRuntimeHealth.checks;
+}
+
+function createDoctorContractChecks(
+	opencodeDir: string,
+	projectDir: string,
+	warnings: CheckResult[],
+	checks: CheckResult[],
+): UnificationDiagnosticCheck[] {
+	const contractChecks: UnificationDiagnosticCheck[] = [];
+
+	for (const check of checks) {
+		contractChecks.push(
+			createUnificationDiagnosticCheck({
+				name: check.name,
+				code: check.ok ? DIAGNOSTIC_CODES.OK : DIAGNOSTIC_CODES.WRONG_SCOPE,
+				level: check.ok ? "OK" : check.warn ? "WARN" : "ERROR",
+				owner: "ock",
+				canonicalStore: check.name.includes("Dependencies")
+					? ".sisyphus"
+					: "none",
+				repairable: !check.ok,
+				message: check.ok
+					? `${check.name} OK`
+					: check.fix
+						? `${check.name} — ${check.fix}`
+						: `${check.name} failed`,
+				details: buildDoctorCheckDetails(check, opencodeDir, projectDir),
+			}),
+		);
+	}
+
+	for (const warning of warnings) {
+		contractChecks.push(
+			createUnificationDiagnosticCheck({
+				name: warning.name,
+				code: DIAGNOSTIC_CODES.REPAIRABLE_RUNTIME_STATE,
+				level: "WARN",
+				owner: "ock",
+				canonicalStore: "none",
+				repairable: true,
+				message: warning.name,
+				details: warning.fix ? [warning.fix] : [],
+			}),
+		);
+	}
+
+	return contractChecks;
+}
+
+function buildDoctorCheckDetails(
+	check: CheckResult,
+	opencodeDir: string,
+	projectDir: string,
+): string[] {
+	const details: string[] = [];
+	if (check.fix) {
+		details.push(check.fix);
+	}
+
+	if (check.name === ".opencode/ exists") {
+		details.push(opencodeDir);
+	}
+	if (check.name === "opencode.json exists") {
+		details.push(join(opencodeDir, "opencode.json"));
+	}
+	if (check.name === "package.json exists") {
+		details.push(join(opencodeDir, "package.json"));
+	}
+	if (check.name === "Dependencies installed") {
+		details.push(join(opencodeDir, "node_modules"));
+	}
+	if (check.name === "$schema reference") {
+		details.push(join(opencodeDir, "opencode.json"));
+	}
+	if (check.name === "Model configured") {
+		details.push(join(opencodeDir, "opencode.json"));
+	}
+	if (check.name.startsWith("Agent files")) {
+		details.push(join(opencodeDir, "agent"));
+	}
+	if (check.name.startsWith("Skills")) {
+		details.push(join(opencodeDir, "skill"));
+	}
+	if (check.name.startsWith("Custom tools")) {
+		details.push(join(opencodeDir, "tool"));
+	}
+	if (check.name.startsWith("MCP servers")) {
+		details.push(join(opencodeDir, "opencode.json"));
+	}
+	if (details.length === 0) {
+		details.push(projectDir);
+	}
+
+	return details;
+}
+
+function exitCodeForLevel(level: MachineReadableDiagnosticsPayload["level"]) {
+	return level === "ERROR" ? 1 : level === "WARN" ? 2 : 0;
 }

@@ -6,6 +6,12 @@ import * as p from "@clack/prompts";
 import color from "picocolors";
 import type { InitOptions } from "../../utils/schemas.js";
 import {
+	createPlanSnapshotIndex,
+	createRuntimeAttachmentsRegistry,
+	getArtifactsIndexPath,
+	getRuntimeAttachmentsRegistryPath,
+} from "../beads-runtime-artifact-files.js";
+import {
 	CONFIG_BASENAME,
 	ensureCanonicalPluginRegistration,
 	refreshCanonicalBridgeConfigFromTemplate,
@@ -18,7 +24,8 @@ export interface BridgeArtifactEmissionResult {
 
 export function describeGlobalInstallTarget(globalDir: string): void {
 	const os = platform();
-	const osName = os === "win32" ? "Windows" : os === "darwin" ? "macOS" : "Linux";
+	const osName =
+		os === "win32" ? "Windows" : os === "darwin" ? "macOS" : "Linux";
 
 	p.log.info(`Installing to global config (${osName})`);
 	p.log.info(`Target: ${color.cyan(globalDir)}`);
@@ -92,7 +99,10 @@ export function startInitSpinner(mode: InitMode): ReturnType<typeof p.spinner> {
 	return spinner;
 }
 
-export function ensureScaffoldDirectory(targetDir: string, mode: InitMode): void {
+export function ensureScaffoldDirectory(
+	targetDir: string,
+	mode: InitMode,
+): void {
 	if (mode === "scaffold") {
 		mkdirSync(targetDir, { recursive: true });
 	}
@@ -101,12 +111,23 @@ export function ensureScaffoldDirectory(targetDir: string, mode: InitMode): void
 export function emitCanonicalBridgeArtifactsScaffold(
 	templateRoot: string,
 	targetDir: string,
+	options?: {
+		beadsRuntimeEnabled?: boolean;
+	},
 ): BridgeArtifactEmissionResult {
 	const opencodeDir = join(targetDir, ".opencode");
 	const emitted: string[] = [];
 	const opencodeConfigPath = join(opencodeDir, "opencode.json");
 
-	if (refreshCanonicalBridgeConfigFromTemplate(join(templateRoot, ".opencode"), opencodeDir)) {
+	if (
+		refreshCanonicalBridgeConfigFromTemplate(
+			join(templateRoot, ".opencode"),
+			opencodeDir,
+			{
+				beadsRuntimeEnabled: options?.beadsRuntimeEnabled ?? false,
+			},
+		)
+	) {
 		emitted.push(join(".opencode", `${CONFIG_BASENAME}.jsonc`));
 	}
 
@@ -126,26 +147,67 @@ export function initializeBeads(targetDir: string, enabled: boolean): void {
 	}
 
 	const beadsDir = join(targetDir, ".beads");
-	if (existsSync(beadsDir)) {
+	if (!existsSync(beadsDir)) {
+		const spinner = p.spinner();
+		spinner.start("Initializing .beads/");
+		try {
+			execSync("br init", { cwd: targetDir, stdio: "ignore" });
+			spinner.stop("Beads initialized");
+		} catch {
+			mkdirSync(beadsDir, { recursive: true });
+			writeFileSync(
+				join(beadsDir, "config.yaml"),
+				"# Beads configuration\nversion: 1\n",
+			);
+			writeFileSync(join(beadsDir, "issues.jsonl"), "");
+			writeFileSync(
+				join(beadsDir, "metadata.json"),
+				JSON.stringify({ created: new Date().toISOString() }, null, 2),
+			);
+			spinner.stop("Beads initialized (manual)");
+		}
+	} else {
 		p.log.info(".beads/ already exists");
-		return;
 	}
 
-	const spinner = p.spinner();
-	spinner.start("Initializing .beads/");
-	try {
-		execSync("br init", { cwd: targetDir, stdio: "ignore" });
-		spinner.stop("Beads initialized");
-	} catch {
-		mkdirSync(beadsDir, { recursive: true });
-		writeFileSync(join(beadsDir, "config.yaml"), "# Beads configuration\nversion: 1\n");
-		writeFileSync(join(beadsDir, "issues.jsonl"), "");
+	ensureSchema1ArtifactScaffold(targetDir);
+}
+
+export function ensureSchema1ArtifactScaffold(targetDir: string): string[] {
+	const now = new Date().toISOString();
+	const emitted: string[] = [];
+	const artifactsDir = join(targetDir, ".beads", "artifacts");
+	mkdirSync(join(artifactsDir, "manifests"), { recursive: true });
+	mkdirSync(join(artifactsDir, "plan-snapshots"), { recursive: true });
+	mkdirSync(join(artifactsDir, "runtime-attachments"), { recursive: true });
+	mkdirSync(join(artifactsDir, "runtime-checkpoints"), { recursive: true });
+
+	const indexPath = join(targetDir, getArtifactsIndexPath());
+	if (!existsSync(indexPath)) {
 		writeFileSync(
-			join(beadsDir, "metadata.json"),
-			JSON.stringify({ created: new Date().toISOString() }, null, 2),
+			indexPath,
+			`${JSON.stringify(createPlanSnapshotIndex({ writtenAt: now }), null, 2)}\n`,
 		);
-		spinner.stop("Beads initialized (manual)");
+		emitted.push(getArtifactsIndexPath());
 	}
+
+	const registryPath = join(targetDir, getRuntimeAttachmentsRegistryPath());
+	if (!existsSync(registryPath)) {
+		writeFileSync(
+			registryPath,
+			`${JSON.stringify(
+				createRuntimeAttachmentsRegistry({
+					attachments: {},
+					writtenAt: now,
+				}),
+				null,
+				2,
+			)}\n`,
+		);
+		emitted.push(getRuntimeAttachmentsRegistryPath());
+	}
+
+	return emitted;
 }
 
 export function installEmbeddedDependencies(targetDir: string): {

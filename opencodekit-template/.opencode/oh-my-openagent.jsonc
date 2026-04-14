@@ -1,2 +1,7 @@
 // Managed by ock bridge artifacts. Customize cautiously.
-{}
+{
+  "experimental": {
+    "beads_runtime": false,
+    "task_system": false
+  }
+}

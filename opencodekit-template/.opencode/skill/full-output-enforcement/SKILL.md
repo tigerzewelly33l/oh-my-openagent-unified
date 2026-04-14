@@ -1,9 +1,21 @@
 ---
 name: full-output-enforcement
 description: MUST load when generating complete files, long code blocks, or any output where truncation or placeholder comments like '// ... rest of code' would be harmful. Bans all placeholder patterns and enforces exhaustive, unabridged output.
+version: 1.0.0
+tags: [workflow, code-quality]
+dependencies: []
 ---
 
 # Full-Output Enforcement
+
+## When to Use
+
+- Generating full files, long code blocks, or exhaustive structured outputs.
+- Any task where placeholders, truncation, or omitted sections would make the result unusable.
+
+## When NOT to Use
+
+- Short conversational answers where the user explicitly wants a brief summary rather than a full artifact.
 
 ## Baseline
 

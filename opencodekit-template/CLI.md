@@ -24,7 +24,9 @@ The current command surface from `src/index.ts`:
 - `ock agent [action]`
 - `ock command [action]`
 - `ock doctor`
+- `ock doctor --repair runtime-state [--json] [--bead <id>]`
 - `ock status`
+- `ock plan publish --bead <id> --plan <path>`
 - `ock config [action]`
 - `ock upgrade`
 - `ock patch [action]`
@@ -84,9 +86,24 @@ Actions:
 
 Run project health checks.
 
+Repair options:
+
+- `--repair runtime-state`
+- `--json`
+- `--bead <id>`
+
 ### `ock status`
 
 Show a project overview.
+
+### `ock plan publish --bead <id> --plan <path>`
+
+Publish an immutable durable snapshot of a `.sisyphus/plans/*.md` file into `.beads/artifacts/plan-snapshots/<bead-id>/...`.
+
+Required options:
+
+- `--bead <id>`
+- `--plan <path>`
 
 ### `ock config [action]`
 

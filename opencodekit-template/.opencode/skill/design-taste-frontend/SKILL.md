@@ -1,9 +1,23 @@
 ---
 name: design-taste-frontend
 description: Use as the BASE aesthetic skill for any web UI to override default LLM design biases. Enforces strict typography, color, spacing, and component architecture rules. Load BEFORE frontend-design when premium visual quality is required.
+version: 1.0.0
+tags: [ui, design]
+dependencies: []
 ---
 
 # High-Agency Frontend Skill
+
+## When to Use
+
+- Building or restyling a web UI where premium visual quality matters.
+- Establishing the base aesthetic rules before using broader frontend implementation skills.
+- Correcting generic AI design defaults in typography, color, spacing, and layout.
+
+## When NOT to Use
+
+- Backend-only, CLI-only, or infrastructure tasks with no meaningful UI surface.
+- Minor UI bug fixes where applying a full aesthetic system would add unnecessary scope.
 
 ## 1. ACTIVE BASELINE CONFIGURATION
 * DESIGN_VARIANCE: 8 (1=Perfect Symmetry, 10=Artsy Chaos)

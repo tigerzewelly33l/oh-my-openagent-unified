@@ -4,6 +4,7 @@ import { delimiter, join } from "node:path";
 export function installFakeRuntimeBinaries(
 	projectDir: string,
 	originalPath: string | undefined,
+	platform = process.platform,
 ) {
 	const binDir = join(projectDir, "bin");
 	mkdirSync(binDir, { recursive: true });
@@ -12,14 +13,16 @@ export function installFakeRuntimeBinaries(
 		'const { mkdirSync } = require("node:fs");',
 		'const { join } = require("node:path");',
 		'mkdirSync(join(process.cwd(), "node_modules"), { recursive: true });',
-		"process.exit(0);",
 	].join("\n");
-	writeFileSync(join(binDir, "npm"), fakeNpmScript);
-	writeFileSync(
-		join(binDir, "npm.cmd"),
-		'@echo off\r\nnode "%~dp0\\npm" %*\r\n',
-	);
-	chmodSync(join(binDir, "npm"), 0o755);
+	const npmScriptPath = join(binDir, platform === "win32" ? "npm.js" : "npm");
+	writeFileSync(npmScriptPath, `${fakeNpmScript}\n`);
+	chmodSync(npmScriptPath, 0o755);
+	if (platform === "win32") {
+		writeFileSync(
+			join(binDir, "npm.cmd"),
+			'@echo off\r\nnode "%~dp0\\npm.js" %*\r\n',
+		);
+	}
 
 	const fakeBrScript = [
 		"#!/usr/bin/env node",
@@ -56,7 +59,6 @@ export function installFakeRuntimeBinaries(
 		'if (args[0] === "init") {',
 		'  mkdirSync(join(beadsDir, "artifacts"), { recursive: true });',
 		'  writeFileSync(join(beadsDir, "config.yaml"), "version: 1\\n");',
-		'  writeFileSync(join(beadsDir, "issues.jsonl"), "", { flag: "a" });',
 		"  saveLedger(loadLedger());",
 		"  process.exit(0);",
 		"}",
@@ -74,20 +76,12 @@ export function installFakeRuntimeBinaries(
 		"  process.exit(0);",
 		"}",
 		'if (args[0] === "ready" && args.includes("--json")) {',
-		"  const tasksById = new Map(ledger.tasks.map((task) => [task.id, task]));",
-		"  const readyIssues = ledger.tasks.filter(",
-		"    (task) =>",
-		'      task.status === "open" &&',
-		"      ledger.deps",
-		"        .filter((dep) => dep.child === task.id)",
-		'        .every((dep) => tasksById.get(dep.parent)?.status === "completed"),',
-		"  );",
-		"  process.stdout.write(JSON.stringify(readyIssues));",
+		"  const blocked = new Set(ledger.deps.map((dep) => dep.child));",
+		"  process.stdout.write(JSON.stringify(ledger.tasks.filter((task) => !blocked.has(task.id))));",
 		"  process.exit(0);",
 		"}",
 		'if (args[0] === "list" && args[1] === "--status" && args[2] === "in_progress" && args[3] === "--json") {',
-		'  const issues = ledger.tasks.filter((task) => task.status === "in_progress");',
-		"  process.stdout.write(JSON.stringify({ issues, total: issues.length, limit: 50, offset: 0, has_more: false }));",
+		"  process.stdout.write(JSON.stringify({ issues: ledger.tasks, total: ledger.tasks.length, limit: 50, offset: 0, has_more: false }));",
 		"  process.exit(0);",
 		"}",
 		'if (args[0] === "show" && args.includes("--json")) {',
@@ -103,10 +97,16 @@ export function installFakeRuntimeBinaries(
 		"process.exit(1);",
 	].join("\n");
 
-	writeFileSync(join(binDir, "br"), fakeBrScript);
-	writeFileSync(join(binDir, "br.cmd"), '@echo off\r\nnode "%~dp0\\br" %*\r\n');
-	chmodSync(join(binDir, "br"), 0o755);
-	process.env.PATH = originalPath
-		? `${binDir}${delimiter}${originalPath}`
-		: binDir;
+	const brScriptPath = join(binDir, platform === "win32" ? "br.js" : "br");
+	writeFileSync(brScriptPath, fakeBrScript);
+	chmodSync(brScriptPath, 0o755);
+	if (platform === "win32") {
+		writeFileSync(
+			join(binDir, "br.cmd"),
+			'@echo off\r\nnode "%~dp0\\br.js" %*\r\n',
+		);
+	}
+	process.env.PATH = [binDir, originalPath ?? ""]
+		.filter((value) => value.length > 0)
+		.join(delimiter);
 }

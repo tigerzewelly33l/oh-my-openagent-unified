@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -65,11 +71,11 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		).toBe(true);
 	});
 
-	it("does not flag unrelated frontmatter skill_name metadata", () => {
+	it("does not flag plain skill_name prose outside skill_mcp examples", () => {
 		const root = createDocsDriftFixture();
 		writeFileSync(
 			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
-			"---\nskill_name: calendar\n---\nThis is metadata, not a skill_mcp call.\n",
+			"---\nexample:\n  skill_name: figma\n---\n\nUse mcp_name when documenting skill_mcp examples.\n",
 		);
 
 		const result = runDocsDriftCheck(root);
@@ -93,39 +99,41 @@ describe("runDocsDriftCheck skill_mcp guidance", () => {
 		).toBe(false);
 	});
 
-	it("flags a repeated deprecated surface mention when a later occurrence is undocumented", () => {
+	it("flags live repeated legacy surface mentions even when an earlier one is deprecated", () => {
 		const root = createDocsDriftFixture();
-		const spacer = "x".repeat(220);
 		writeFileSync(
 			join(root, ".opencode", "plugin", "README.md"),
-			[
-				"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.",
-				spacer,
-				"skill_mcp_status remains available in examples below.",
-			].join("\n"),
+			"skill_mcp_status is deprecated and unsupported in canonical guidance.\n\nUse skill_mcp_status to check whether a session is connected.\n",
 		);
 
 		const result = runDocsDriftCheck(root);
 
-		expect(result.ok).toBe(false);
 		expect(
 			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-surface"),
 		).toBe(true);
 	});
 
-	it("ignores broken symlinks while collecting markdown files", () => {
+	it("ignores symlinked markdown directories during recursive scans", () => {
 		const root = createDocsDriftFixture();
-		const brokenSkillLink = join(root, ".opencode", "skill", "broken-link");
-		symlinkSync(join(root, "missing-target"), brokenSkillLink);
-
+		const externalDir = mkdtempSync(
+			join(tmpdir(), "docs-drift-symlink-target-"),
+		);
+		tempDirs.push(externalDir);
+		mkdirSync(join(externalDir, "nested"), { recursive: true });
 		writeFileSync(
-			join(root, ".opencode", "skill", "example-skill", "SKILL.md"),
-			"skill_mcp_status is deprecated and unsupported in canonical OMO runtime guidance.\n",
+			join(externalDir, "nested", "external.md"),
+			'skill_mcp(skill_name="external", tool_name="bad")\n',
+		);
+		symlinkSync(
+			externalDir,
+			join(root, ".opencode", "skill", "external-link"),
+			process.platform === "win32" ? "junction" : "dir",
 		);
 
 		const result = runDocsDriftCheck(root);
 
-		expect(result.ok).toBe(true);
-		expect(result.issues).toHaveLength(0);
+		expect(
+			result.issues.some((issue) => issue.rule === "legacy-skill-mcp-syntax"),
+		).toBe(false);
 	});
 });

@@ -6,7 +6,7 @@ agent: build
 
 # Status: $ARGUMENTS
 
-Quick project status dashboard. Runs read-only commands and reports state, including bridge health.
+Quick project status dashboard. Runs read-only commands and reports state, including bridge health and beads-runtime diagnostics.
 
 > **No arguments required.** Flags are optional filters.
 
@@ -35,17 +35,17 @@ skill({ name: "beads" });
 
 - **Be certain**: This is a read-only command, no changes are made
 - **Use actual data**: Don't invent data, use real command output
-- **No modifications**: Don't create beads or modify state from status
+- **No modifications**: Don't create beads, attach runtime state, write verify logs, publish plans, repair runtime state, or modify bead status from status
 - **Single recommendation**: Only suggest ONE next action
 
 ## Available Tools
 
-| Tool            | Use When              |
-| --------------- | --------------------- |
-| `br`            | Task status and stats |
-| `git`           | Git state and history |
-| `session_search` | Recent sessions      |
-| `session_read`  | Inspect a specific session when needed |
+| Tool             | Use When                               |
+| ---------------- | -------------------------------------- |
+| `br`             | Task status and stats                  |
+| `git`            | Git state and history                  |
+| `session_search` | Recent sessions                        |
+| `session_read`   | Inspect a specific session when needed |
 
 ## Phase 1: Gather State (Parallel)
 
@@ -91,6 +91,10 @@ BRIDGE
   Health: [OK|WARN|ERROR]
   Notes:  [truthful summary of canonical plugin registration, dual basenames, or preserved legacy-authored drift]
 
+BEADS RUNTIME
+  Health: [OK|WARN|ERROR]
+  Notes:  [read-only diagnostics from attached bead metadata, reconcile state, or runtime artifact checks]
+
 SESSIONS TODAY
   [from session_search]
 ```
@@ -99,7 +103,7 @@ SESSIONS TODAY
 
 ## Phase 3: Suggest Next Action
 
-Based on gathered state, recommend ONE next step:
+Based on gathered state, recommend ONE next step. Recommendations stay advisory only, because `/status` is read-only.
 
 | State                        | Suggestion                    |
 | ---------------------------- | ----------------------------- |

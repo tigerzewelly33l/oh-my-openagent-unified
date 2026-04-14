@@ -6,7 +6,7 @@ agent: build
 
 # Ship: $ARGUMENTS
 
-Execute PRD tasks, verify each passes, run review, close the bead.
+Execute PRD tasks, verify each passes, run review, then close the bead only after explicit user approval. `/ship` is the only authored path that closes the bead and runs `br sync --flush-only`.
 
 > **Workflow:** `/create` → `/start <id>` → **`/ship <id>`**
 >
@@ -35,16 +35,17 @@ skill({ name: "verification-before-completion" });
 - **Verify goals**: Tasks completing ≠ goals achieved (use goal-backward verification)
 - **Commit before close**: Per-task commits required, don't ship without git history
 - **Ask before closing**: Never close bead without user confirmation
+- **Keep ownership split frozen**: OMO runtime may read or reconcile attached bead state, but `/ship` remains the only close + sync path
 
 ## Available Tools
 
-| Tool      | Use When                                  |
-| --------- | ----------------------------------------- |
-| `explore` | Finding patterns in codebase, prior art   |
-| `scout`   | External research, best practices         |
-| `lsp`     | Finding symbol definitions, references    |
-| `tilth_tilth_search` | Finding code patterns |
-| `task`    | Spawning subagents for parallel execution |
+| Tool                 | Use When                                  |
+| -------------------- | ----------------------------------------- |
+| `explore`            | Finding patterns in codebase, prior art   |
+| `scout`              | External research, best practices         |
+| `lsp`                | Finding symbol definitions, references    |
+| `tilth_tilth_search` | Finding code patterns                     |
+| `task`               | Spawning subagents for parallel execution |
 
 ## Phase 1: Guards
 
@@ -59,19 +60,25 @@ Verify:
 
 Check what artifacts exist:
 
-Read `.beads/artifacts/$ARGUMENTS/` to check what artifacts exist.
+Read the bead's durable artifacts, then any matching working draft state:
+
+- `.beads/artifacts/$ARGUMENTS/` for PRD and other bead-local durable artifacts
+- `.beads/artifacts/plan-snapshots/<bead-id>/` for durable published plan snapshots
+- `.sisyphus/plans/*.md` only as rebuildable working authoring state when a local draft still exists
+
+Do not treat a generic bead-local artifact directory read as enough to identify durable published plan truth. Published plans must be resolved from the explicit `plan-snapshots/<bead-id>/` namespace.
 
 ## Phase 2: Route to Execution
 
-| Artifact exists | Action                                                   |
-| --------------- | -------------------------------------------------------- |
-| `plan.md`       | Load `executing-plans` skill, follow its batch process   |
-| `prd.json`      | Proceed to PRD task loop below                           |
-| Only `prd.md`   | Load `prd-task` skill to create `prd.json`, then proceed |
+| Artifact exists                                                            | Action                                                                                  |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Published plan snapshot under `.beads/artifacts/plan-snapshots/<bead-id>/` | Load `executing-plans` skill, follow its batch process using the published durable plan |
+| `prd.json`                                                                 | Proceed to PRD task loop below                                                          |
+| Only `prd.md`                                                              | Load `prd-task` skill to create `prd.json`, then proceed                                |
 
 ## Phase 3: Wave-Based Execution
 
-If `plan.md` exists with dependency graph:
+If a durable published plan snapshot exists with a dependency graph:
 
 1. **Load skill:** `skill({ name: "executing-plans" })`
 2. **Parse waves** from dependency graph section
@@ -201,6 +208,8 @@ Follow the [Verification Protocol](../skill/verification-before-completion/refer
 - All 4 gates must pass before proceeding to commit/push
 - Also run PRD `Verify:` commands
 
+`/verify` remains the only command that writes `.beads/verify.log`. `/ship` consumes fresh verification evidence but must not create or update that cache itself.
+
 ## Phase 5: Review
 
 Load and run the review skill:
@@ -232,7 +241,7 @@ Wait for all 5 agents to return. Synthesize findings.
 
 If review finds critical issues that require architectural decisions → stop → present options to user.
 
-### Goal-Backward Verification (if plan.md exists)
+### Goal-Backward Verification (if a durable published plan snapshot exists)
 
 Verify that tasks completed ≠ goals achieved:
 
@@ -291,6 +300,8 @@ br close $ARGUMENTS --reason "Shipped: all PRD tasks pass, verification + review
 br sync --flush-only
 ```
 
+No other authored command should perform this close + sync sequence. If approval is not given, stop and report current verified status without closing the bead.
+
 Record significant learnings with `/compound $ARGUMENTS` after closing.
 
 ## Output
@@ -299,7 +310,7 @@ Report:
 
 1. **Execution Summary:**
    - Tasks completed/total
-   - Waves executed (if plan.md with waves)
+   - Waves executed (if a published plan snapshot or working draft defined waves)
    - Deviations applied (Rules 1-3)
    - Checkpoints encountered (human-verify/decision/human-action)
    - Commits made

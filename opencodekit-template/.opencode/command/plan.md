@@ -46,9 +46,9 @@ Before touching the PRD or planning anything, load what the codebase already kno
 
 ```typescript
 // Search for past decisions, patterns, gotchas related to this work
-memory_search({ query: "<bead-title or feature keywords>", limit: 5 });
-memory_search({ query: "<key technical concept from bead>", type: "bugfix", limit: 3 });
-memory_read({ file: "handoffs/last" }); // Check last session context
+memory-search({ query: "<bead-title or feature keywords>", limit: 5 });
+memory-search({ query: "<key technical concept from bead>", type: "bugfix", limit: 3 });
+memory-read({ file: "handoffs/last" }); // Check last session context
 ```
 
 If relevant observations found: incorporate them directly into the plan. Don't re-solve solved problems.
@@ -99,13 +99,19 @@ task({
 br show $ARGUMENTS
 ```
 
-Read `.beads/artifacts/$ARGUMENTS/` to check what artifacts exist.
+Inspect the durable artifact surfaces for the bead:
+
+- `.beads/artifacts/plan-snapshots/<bead-id>/` for published plan snapshots and manifest state
+- `.beads/artifacts/manifests/index.schema-1.json` for the durable plan index when needed
+
+Treat `.sisyphus/plans/*.md` as working authoring state, not durable published truth.
 
 Verify:
 
 - Bead is `in_progress`
 - `prd.md` exists
-- If `plan.md` already exists, ask user: overwrite or skip?
+- If a working draft already exists at `.sisyphus/plans/*.md`, ask user whether to update that draft or leave it alone
+- If a durable published snapshot already exists under `.beads/artifacts/plan-snapshots/<bead-id>/`, treat it as the last published truth until a newer draft is explicitly frozen with `ock plan publish`
 
 ## Phase 2: Discovery Assessment
 
@@ -132,7 +138,10 @@ question({
       header: "Discovery Level",
       question: "Suggested discovery level based on PRD complexity. Proceed?",
       options: [
-        { label: "Deep (Recommended for complex work)", description: "Level 2-3: spawn scout + explore agents" },
+        {
+          label: "Deep (Recommended for complex work)",
+          description: "Level 2-3: spawn scout + explore agents",
+        },
         { label: "Standard", description: "Level 1: quick doc lookup" },
         { label: "Skip research", description: "Level 0: I know the codebase" },
       ],
@@ -254,7 +263,11 @@ Wave 3: C (depends on B)
 
 ## Phase 7: Write Plan
 
-Write `.beads/artifacts/$ARGUMENTS/plan.md` following the `writing-plans` skill format:
+Write the working plan draft to `.sisyphus/plans/<plan-name>.md` following the `writing-plans` skill format:
+
+- `.sisyphus/plans/*.md` is the editable authoring surface
+- Durable published truth lives under `.beads/artifacts/plan-snapshots/<bead-id>/...` only after `ock plan publish --bead <id> --plan .sisyphus/plans/<plan-name>.md`
+- Published plan snapshots under `.beads/artifacts/plan-snapshots/<bead-id>/...` are the only durable published plan surface in this workflow; `.sisyphus/plans/*.md` remains working authoring state until explicitly published
 
 ### Required Plan Header
 
@@ -337,12 +350,13 @@ Output:
 4. **Dependency Waves:** [N] waves for parallel execution
 5. **Task count:** [N] tasks, [M] TDD steps
 6. **Files affected:** [List]
-7. **Plan location:** `.beads/artifacts/$ARGUMENTS/plan.md`
-8. **Child bead hierarchy:** (if created)
-9. **Next step:** `/ship $ARGUMENTS`
+7. **Working plan location:** `.sisyphus/plans/<plan-name>.md`
+8. **Publish command:** `ock plan publish --bead $ARGUMENTS --plan .sisyphus/plans/<plan-name>.md` when the draft is approved
+9. **Child bead hierarchy:** (if created)
+10. **Next step:** `/ship $ARGUMENTS`
 
 ```bash
-br comments add $ARGUMENTS "Created plan.md: Level [N] discovery, [X] waves, [Y] tasks, [Z] TDD steps"
+br comments add $ARGUMENTS "Created working plan draft in .sisyphus/plans/: Level [N] discovery, [X] waves, [Y] tasks, [Z] TDD steps"
 ```
 
 ## Related Commands
